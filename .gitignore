@@ -1,0 +1,26 @@
+# ignore python bytecode files
+*.pyc
+*.egg-info
+
+# ignore rdb files
+*.rdb
+
+# ignore ds_store files
+.DS_Store
+
+
+# ignore datasets
+data/t15_copyTask_neuralData/
+data/t15_pretrained_rnn_baseline/
+*.hdf5
+*.h5
+
+# ignore trained models
+model_training/trained_models/
+*.pt
+*.pth
+*.ckpt
+
+cuda-repo-wsl-ubuntu-12-8-local_12.8.0-1_amd64.deb
+
+language_model
