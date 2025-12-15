@@ -26,6 +26,7 @@ torch._dynamo.config.cache_size_limit = 64
 
 from rnn_model import GRUDecoder
 from conformer_model import ConformerDecoder
+from combined_models import build_unet_conformer, build_unet_rnn
 
 class BrainToTextDecoder_Trainer:
     """
@@ -131,9 +132,12 @@ class BrainToTextDecoder_Trainer:
 
         # Initialize the model 
         model_type = self.args['model'].get('type', 'rnn')
+        unet_path = self.args['model'].get('unet_path', None)
+        freeze_unet = self.args['model'].get('freeze_unet', True)
+        use_precomputed_unet = self.args['model'].get('use_precomputed_unet', False) # NEW FLAG
         
         if model_type == 'conformer':
-            self.model = ConformerDecoder(
+            conformer_args = dict(
                 neural_dim = self.args['model']['n_input_features'],
                 n_units = self.args['model']['n_units'],
                 n_days = len(self.args['dataset']['sessions']),
@@ -144,8 +148,16 @@ class BrainToTextDecoder_Trainer:
                 patch_size = self.args['model']['patch_size'],
                 patch_stride = self.args['model']['patch_stride'],
             )
+            # Only wrap with U-Net if we are NOT using precomputed features
+            if unet_path and not use_precomputed_unet:
+                self.logger.info(f"Initializing Conformer with U-Net from {unet_path}")
+                self.model = build_unet_conformer(conformer_args, unet_path, freeze_unet)
+            else:
+                if use_precomputed_unet:
+                    self.logger.info("Using precomputed U-Net features. Initializing standard Conformer.")
+                self.model = ConformerDecoder(**conformer_args)
         else:
-            self.model = GRUDecoder(
+            rnn_args = dict(
                 neural_dim = self.args['model']['n_input_features'],
                 n_units = self.args['model']['n_units'],
                 n_days = len(self.args['dataset']['sessions']),
@@ -156,10 +168,18 @@ class BrainToTextDecoder_Trainer:
                 patch_size = self.args['model']['patch_size'],
                 patch_stride = self.args['model']['patch_stride'],
             )
+            # Only wrap with U-Net if we are NOT using precomputed features
+            if unet_path and not use_precomputed_unet:
+                self.logger.info(f"Initializing RNN with U-Net from {unet_path}")
+                self.model = build_unet_rnn(rnn_args, unet_path, freeze_unet)
+            else:
+                if use_precomputed_unet:
+                    self.logger.info("Using precomputed U-Net features. Initializing standard RNN.")
+                self.model = GRUDecoder(**rnn_args)
 
         # Call torch.compile to speed up training
-        self.logger.info("Using torch.compile")
-        self.model = torch.compile(self.model)
+        # self.logger.info("Using torch.compile")
+        # self.model = torch.compile(self.model)
 
         self.logger.info(f"Initialized RNN decoding model")
 
@@ -178,8 +198,15 @@ class BrainToTextDecoder_Trainer:
         self.logger.info(f"Model has {day_params:,} day-specific parameters | {((day_params / total_params) * 100):.2f}% of total parameters")
 
         # Create datasets and dataloaders
-        train_file_paths = [os.path.join(self.args["dataset"]["dataset_dir"],s,'data_train.hdf5') for s in self.args['dataset']['sessions']]
-        val_file_paths = [os.path.join(self.args["dataset"]["dataset_dir"],s,'data_val.hdf5') for s in self.args['dataset']['sessions']]
+        # NEW LOGIC: Select file suffix based on precomputed flag
+        file_suffix = 'data_train_unet.hdf5' if use_precomputed_unet else 'data_train.hdf5'
+        val_suffix = 'data_val_unet.hdf5' if use_precomputed_unet else 'data_val.hdf5'
+        
+        if use_precomputed_unet:
+            self.logger.info(f"Loading preprocessed U-Net data from *_{'unet.hdf5'}")
+
+        train_file_paths = [os.path.join(self.args["dataset"]["dataset_dir"],s, file_suffix) for s in self.args['dataset']['sessions']]
+        val_file_paths = [os.path.join(self.args["dataset"]["dataset_dir"],s, val_suffix) for s in self.args['dataset']['sessions']]
 
         # Ensure that there are no duplicate days
         if len(set(train_file_paths)) != len(train_file_paths):

@@ -69,12 +69,21 @@ model = GRUDecoder(
 )
 
 # load model weights
-checkpoint = torch.load(os.path.join(model_path, 'checkpoint/best_checkpoint'), weights_only=False)
-# rename keys to not start with "module." (happens if model was saved with DataParallel)
-for key in list(checkpoint['model_state_dict'].keys()):
-    checkpoint['model_state_dict'][key.replace("module.", "")] = checkpoint['model_state_dict'].pop(key)
-    checkpoint['model_state_dict'][key.replace("_orig_mod.", "")] = checkpoint['model_state_dict'].pop(key)
-model.load_state_dict(checkpoint['model_state_dict'])  
+if os.path.isdir(args.model_path):
+    checkpoint_path = os.path.join(args.model_path, 'checkpoint/best_checkpoint')
+else:
+    checkpoint_path = args.model_path
+
+checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+
+
+# Fix for torch.compile adding "_orig_mod." prefix
+# Create a new state dict to avoid RuntimeError/KeyError during iteration
+new_state_dict = {}
+for key, value in checkpoint['model_state_dict'].items():
+    new_key = key.replace("_orig_mod.", "")
+    new_state_dict[new_key] = value
+checkpoint['model_state_dict'] = new_state_dict
 
 # add model to device
 model.to(device) 

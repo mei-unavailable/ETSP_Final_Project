@@ -8,21 +8,22 @@ model:
   patch_size: 14 # size of the input patches (14 time steps)
   patch_stride: 4 # stride for the input patches (4 time steps)
   n_heads: 4 # number of attention heads for Conformer
+  unet_path: trained_models/unet_ssl_20251210_065837/unet_mae_epoch_50.pt # path to pretrained unet checkpoint
+  freeze_unet: true # whether to freeze unet weights
+  use_precomputed_unet: false # NEW: Use pre-processed features from _unet.hdf5 files
+  # setting to false is slow at first but actually faster afterwards
 
   input_network:
-    n_input_layers: 1 # number of input layers per network (one network for each day)
-    input_layer_sizes:
-    - 512 # size of the input layer (number of input features)
-    input_trainable: true # whether the input layer is trainable
-    input_layer_dropout: 0.2 # dropout rate for the input layer
+    input_layer_dropout: 0.4
+    input_trainable: true
 
 gpu_number: '0' # GPU number to use for training, formatted as a string (e.g., '0', '1', etc.)
 mode: train
 use_amp: true # whether to use automatic mixed precision (AMP) for training
 
-output_dir: trained_models/baseline_rnn_v2 # directory to save the trained model and logs
+output_dir: trained_models/baseline_rnn_unet # directory to save the trained model and logs
 checkpoint_dir: trained_models/baseline_rnn_v2/checkpoint # directory to save checkpoints during training
-init_from_checkpoint: true # whether to initialize the model from a checkpoint
+init_from_checkpoint: false # whether to initialize the model from a checkpoint
 init_checkpoint_path: trained_models/baseline_rnn_v2_20251202_220821/checkpoint/best_checkpoint # path to the checkpoint to initialize the model from, if any
 save_best_checkpoint: true # whether to save the best checkpoint based on validation metrics
 save_all_val_steps: false # whether to save checkpoints at all validation steps
@@ -72,7 +73,7 @@ dataset:
     smooth_kernel_std: 2 # standard deviation of the smoothing kernel applied to the data
 
   neural_dim: 512 # dimensionality of the neural data
-  batch_size: 64 # batch size for training
+  batch_size: 20 # batch size for training
   n_classes: 41 # number of classes (phonemes) in the dataset
   max_seq_elements: 500 # maximum number of sequence elements (phonemes) for any trial
   days_per_batch: 4 # number of randomly-selected days to include in each batch
@@ -132,6 +133,11 @@ dataset:
   - t15.2025.03.30
   - t15.2025.04.13
   dataset_probability_val: # probability of including a trial in the validation set (0 or 1)
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
   - 1
   - 1
   - 1

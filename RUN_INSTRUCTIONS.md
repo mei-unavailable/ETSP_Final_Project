@@ -85,18 +85,21 @@ redis-server
 Open a **second terminal**, activate the LM environment (if different, otherwise use `b2txt25`), and run the LM:
 
 ```bash
-# From the project root directory
-conda activate b2txt25
-python language_model/language-model-standalone.py \
-    --lm_path language_model/pretrained_language_models/openwebtext_1gram_lm_sil \
-    --do_opt \
-    --nbest 100 \
-    --acoustic_scale 0.325 \
-    --blank_penalty 90 \
-    --alpha 0.55 \
-    --redis_ip localhost \
-    --gpu_number 0
+export HF_ENDPOINT=https://hf-mirror.com
+export HF_HOME=/root/autodl-tmp/huggingface_cache
+
+conda activate b2txt25_lm
+python language_model/language-model-standalone.py --lm_path language_model/pretrained_language_models/openwebtext_1gram_lm_sil --do_opt --nbest 100 --acoustic_scale 0.325 --blank_penalty 90 --alpha 0.55 --redis_ip localhost --gpu_number 0
 ```
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+export HF_HOME=/root/autodl-tmp/huggingface_cache
+
+conda activate b2txt25_lm
+python language_model/language-model-standalone.py --lm_path language_model/pretrained_language_models/openwebtext_1gram_lm_sil  --nbest 100 --acoustic_scale 0.325 --blank_penalty 90 --alpha 0.55 --redis_ip localhost --gpu_number 0
+```
+
 *Wait until you see "Successfully connected to the redis server".*
 
 ### Step 3: Run Evaluation
@@ -105,7 +108,7 @@ Open a **third terminal** (or use the original one), navigate to `model_training
 ```bash
 cd model_training
 python evaluate_model.py \
-    --model_path trained_models/baseline_rnn \
+    --model_path trained_models/baseline_conformer_v1_20251208_190614 \
     --data_dir ../data/hdf5_data_final \
     --eval_type test \
     --gpu_number 0

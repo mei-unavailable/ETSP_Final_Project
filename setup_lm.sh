@@ -40,10 +40,9 @@ conda create -n b2txt25_lm python=3.11 -y
 conda activate b2txt25_lm
 
 # Upgrade pip
-pip install --upgrade pip
+pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-pip install torchaudio --index-url  https://download.pytorch.org/whl/nightly/cu128
-pip install torch=='2.10.0.dev20250928+cu128' torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 
 # Install additional packages
 pip install \
@@ -65,6 +64,17 @@ pip install \
 
 # cd to the language model directory and install the language model
 cd language_model/runtime/server/x86
+
+# --- NEW: Create symlink for kaldi ---
+rm -rf kaldi
+ln -s ../../core/kaldi kaldi
+# -------------------------------------
+
+# --- NEW: Explicitly specify CUDA compiler path ---
+export CUDACXX=/usr/local/cuda/bin/nvcc
+export PATH=/usr/local/cuda/bin:$PATH
+# ------------------------------------
+
 python setup.py install
 
 # cd back to the root directory
