@@ -1,17 +1,22 @@
 model:
   type: 'conformer' # 'rnn' or 'conformer'
   n_input_features: 512 # number of input features in the neural data. (2 features per electrode, 256 electrodes)
-  n_units: 512 # Conformer 维度通常设为 256 或 512
-  rnn_dropout: 0.4 # dropout rate
+  n_units: 256 # Conformer encoder dim (smaller for stability)
+  rnn_dropout: 0.2 # unused for Conformer; kept for compatibility
   rnn_trainable: true # whether the layers are trainable
-  n_layers: 6 # Conformer 层数
+  n_layers: 4 # Conformer 层数（更小更稳）
   patch_size: 14 # size of the input patches (14 time steps)
   patch_stride: 4 # stride for the input patches (4 time steps)
   n_heads: 4 # number of attention heads for Conformer
-  unet_path: trained_models/unet_ssl_20251210_065837/unet_mae_epoch_50.pt # path to pretrained unet checkpoint
-  freeze_unet: true # whether to freeze unet weights
+  unet_path: null # path to pretrained unet checkpoint
+  freeze_unet: false # whether to freeze unet weights
   use_precomputed_unet: false # NEW: Use pre-processed features from _unet.hdf5 files
   # setting to false is slow at first but actually faster afterwards
+
+  conv_kernel_size: 15 # smaller conv kernel for stability
+  ffn_mult: 2 # FFN multiplier (n_units * ffn_mult)
+  add_day_layers: true # keep day-specific blocks but constrained
+  day_layer_mode: rnn # options: mlp | rnn | none
 
 
   input_network:
@@ -20,7 +25,7 @@ model:
     # - 512 # size of the input layer (number of input features)
     # input_trainable: true # whether the input layer is trainable
     # input_layer_dropout: 0.2 # dropout rate for the input layer
-    input_layer_dropout: 0.4
+    input_layer_dropout: 0.2
     input_trainable: true
 
 gpu_number: '0' # GPU number to use for training, formatted as a string (e.g., '0', '1', etc.)
@@ -40,22 +45,25 @@ early_stopping_val_steps: 20 # number of validation steps to wait before stoppin
 
 num_training_batches: 120000 # number of training batches to run
 lr_scheduler_type: cosine # type of learning rate scheduler to use
-lr_max: 0.0005 # Conformer 通常比 RNN 需要更小的学习率 (原为 0.005)
-lr_min: 0.00001 # minimum learning rate for the main model
+lr_max: 0.0003 # smaller LR for Conformer stability
+lr_min: 0.00003 # minimum learning rate for the main model
 lr_decay_steps: 120000 # number of steps for the learning rate decay
-lr_warmup_steps: 2000 # Conformer 通常需要更长的 warmup (原为 1000)
-lr_max_day: 0.005 # maximum learning rate for the day specific input layers
+lr_warmup_steps: 8000 # longer warmup for Conformer
+lr_max_day: 0.001 # day-specific LR (reduced)
 lr_min_day: 0.0001 # minimum learning rate for the day specific input layers
 lr_decay_steps_day: 120000 # number of steps for the learning rate decay for the day specific input layers
-lr_warmup_steps_day: 1000 # number of warmup steps for the learning rate scheduler for the day specific input layers
+lr_warmup_steps_day: 4000 # number of warmup steps for the learning rate scheduler for the day specific input layers
 
 beta0: 0.9 # beta0 parameter for the Adam optimizer
 beta1: 0.98 # Transformer/Conformer 常用 0.98 (原为 0.999)
 epsilon: 1e-9 # epsilon parameter for the Adam optimizer
-weight_decay: 0.01 # weight decay for the main model
-weight_decay_day: 0 # weight decay for the day specific input layers
+weight_decay: 0.001 # weight decay for the main model
+weight_decay_day: 0.0005 # weight decay for the day specific input layers
 seed: 42 # random seed for reproducibility
-grad_norm_clip_value: 10 # gradient norm clipping value
+grad_norm_clip_value: 5 # tighter gradient clipping
+
+# CTC regularization
+ctc_label_smoothing: 0.1
 
 batches_per_train_log: 200 # number of batches per training log
 batches_per_val_step: 2000 # number of batches per validation step
@@ -77,6 +85,12 @@ dataset:
     smooth_kernel_size: 100 # size of the smoothing kernel applied to the data
     smooth_data: true # whether to smooth the data
     smooth_kernel_std: 2 # standard deviation of the smoothing kernel applied to the data
+    # SpecAugment (time/freq masking)
+    time_mask_param: 15
+    time_mask_count: 2
+    freq_mask_param: 24
+    freq_mask_count: 2
+    specaugment_mask_value: 0.0
 
   neural_dim: 512 # dimensionality of the neural data
   batch_size: 12 # batch size for training

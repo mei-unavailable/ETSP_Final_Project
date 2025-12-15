@@ -15,7 +15,7 @@ import pickle
 from tqdm import tqdm
 
 from dataset import BrainToTextDataset, train_test_split_indicies
-from data_augmentations import gauss_smooth
+from data_augmentations import gauss_smooth, spec_augment
 
 import torchaudio.functional as F # for edit distance
 from omegaconf import OmegaConf
@@ -58,6 +58,7 @@ class BrainToTextDecoder_Trainer:
         self.val_loader = None 
 
         self.transform_args = self.args['dataset']['data_transforms']
+        self.ctc_label_smoothing = self.args.get('ctc_label_smoothing', 0.0)
 
         # Add timestamp to output directory
         if args['mode'] == 'train':
@@ -147,6 +148,10 @@ class BrainToTextDecoder_Trainer:
                 input_dropout = self.args['model']['input_network']['input_layer_dropout'],
                 patch_size = self.args['model']['patch_size'],
                 patch_stride = self.args['model']['patch_stride'],
+                conv_kernel_size = self.args['model'].get('conv_kernel_size', 15),
+                ffn_mult = self.args['model'].get('ffn_mult', 2),
+                add_day_layers = self.args['model'].get('add_day_layers', True),
+                day_layer_mode = self.args['model'].get('day_layer_mode', 'mlp'),
             )
             # Only wrap with U-Net if we are NOT using precomputed features
             if unet_path and not use_precomputed_unet:
@@ -294,7 +299,7 @@ class BrainToTextDecoder_Trainer:
         else:
             raise ValueError(f"Invalid learning rate scheduler type: {self.args['lr_scheduler_type']}")
         
-        self.ctc_loss = torch.nn.CTCLoss(blank = 0, reduction = 'none', zero_infinity = False)
+        self.ctc_loss = torch.nn.CTCLoss(blank = 0, reduction = 'none', zero_infinity = True)
 
         # If a checkpoint is provided, then load from checkpoint
         if self.args['init_from_checkpoint']:
@@ -534,7 +539,17 @@ class BrainToTextDecoder_Trainer:
                 smooth_kernel_std = self.transform_args['smooth_kernel_std'],
                 smooth_kernel_size= self.transform_args['smooth_kernel_size'],
                 )
-            
+
+        # SpecAugment-style masking (train only)
+        if mode == 'train':
+            features = spec_augment(
+                inputs=features,
+                time_mask_param=self.transform_args.get('time_mask_param', 0),
+                time_mask_count=self.transform_args.get('time_mask_count', 0),
+                freq_mask_param=self.transform_args.get('freq_mask_param', 0),
+                freq_mask_count=self.transform_args.get('freq_mask_count', 0),
+                mask_value=self.transform_args.get('specaugment_mask_value', 0.0),
+            )
         
         return features, n_time_steps
 
@@ -589,9 +604,15 @@ class BrainToTextDecoder_Trainer:
                 # Get phoneme predictions 
                 logits = self.model(features, day_indicies)
 
-                # Calculate CTC Loss
+                # Calculate CTC Loss with optional label smoothing
+                log_probs = logits.log_softmax(2)
+                if self.ctc_label_smoothing > 0:
+                    probs = log_probs.exp()
+                    smoothed = (1 - self.ctc_label_smoothing) * probs + self.ctc_label_smoothing / probs.size(-1)
+                    log_probs = smoothed.clamp(min=1e-12).log()
+
                 loss = self.ctc_loss(
-                    log_probs = torch.permute(logits.log_softmax(2), [1, 0, 2]),
+                    log_probs = torch.permute(log_probs, [1, 0, 2]),
                     targets = labels,
                     input_lengths = adjusted_lens,
                     target_lengths = phone_seq_lens

@@ -35,3 +35,50 @@ def gauss_smooth(inputs, device, smooth_kernel_std=2, smooth_kernel_size=100,  p
     # Perform convolution
     smoothed = F.conv1d(inputs, gaussKernel, padding=padding, groups=C)
     return smoothed.permute(0, 2, 1)  # [B, T, C]
+
+
+def spec_augment(
+    inputs,
+    time_mask_param=0,
+    time_mask_count=0,
+    freq_mask_param=0,
+    freq_mask_count=0,
+    mask_value=0.0,
+):
+    """Apply simple SpecAugment-style masking on neural features.
+
+    Args:
+        inputs: Tensor of shape (B, T, C).
+        time_mask_param: Max width of each time mask.
+        time_mask_count: Number of time masks to apply.
+        freq_mask_param: Max width of each feature/channel mask.
+        freq_mask_count: Number of feature masks to apply.
+        mask_value: Value to fill masked regions with.
+    """
+
+    if time_mask_param <= 0 and freq_mask_param <= 0:
+        return inputs
+
+    B, T, C = inputs.shape
+    device = inputs.device
+    x = inputs
+
+    if time_mask_param > 0 and time_mask_count > 0:
+        for _ in range(time_mask_count):
+            mask_len = torch.randint(0, time_mask_param + 1, (1,), device=device).item()
+            if mask_len == 0:
+                continue
+            start = torch.randint(0, max(T - mask_len, 1), (1,), device=device).item()
+            end = min(start + mask_len, T)
+            x[:, start:end, :] = mask_value
+
+    if freq_mask_param > 0 and freq_mask_count > 0:
+        for _ in range(freq_mask_count):
+            mask_len = torch.randint(0, freq_mask_param + 1, (1,), device=device).item()
+            if mask_len == 0:
+                continue
+            start = torch.randint(0, max(C - mask_len, 1), (1,), device=device).item()
+            end = min(start + mask_len, C)
+            x[:, :, start:end] = mask_value
+
+    return x
