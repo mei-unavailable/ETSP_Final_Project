@@ -1,0 +1,524 @@
+2025-12-16 18:00:31,460: Using device: cuda:0
+2025-12-16 18:00:31,462: Initializing Conformer with U-Net from /root/autodl-tmp/nejm-brain-to-text/model_training/trained_models/unet_ssl_20251210_065837/unet_mae_epoch_50.pt
+2025-12-16 18:00:31,784: Initialized RNN decoding model
+2025-12-16 18:00:31,785: UNetEnhancedModel(
+  (unet): NeuralUNet(
+    (inc): DoubleConv(
+      (double_conv): Sequential(
+        (0): Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+        (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (4): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (5): ReLU(inplace=True)
+      )
+    )
+    (down1): Down(
+      (maxpool_conv): Sequential(
+        (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        (1): DoubleConv(
+          (double_conv): Sequential(
+            (0): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (2): ReLU(inplace=True)
+            (3): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (4): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (5): ReLU(inplace=True)
+          )
+        )
+      )
+    )
+    (down2): Down(
+      (maxpool_conv): Sequential(
+        (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        (1): DoubleConv(
+          (double_conv): Sequential(
+            (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (2): ReLU(inplace=True)
+            (3): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (4): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (5): ReLU(inplace=True)
+          )
+        )
+      )
+    )
+    (down3): Down(
+      (maxpool_conv): Sequential(
+        (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        (1): DoubleConv(
+          (double_conv): Sequential(
+            (0): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (2): ReLU(inplace=True)
+            (3): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (4): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (5): ReLU(inplace=True)
+          )
+        )
+      )
+    )
+    (down4): Down(
+      (maxpool_conv): Sequential(
+        (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        (1): DoubleConv(
+          (double_conv): Sequential(
+            (0): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (2): ReLU(inplace=True)
+            (3): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (4): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (5): ReLU(inplace=True)
+          )
+        )
+      )
+    )
+    (up1): Up(
+      (up): Upsample(scale_factor=2.0, mode='bilinear')
+      (conv): DoubleConv(
+        (double_conv): Sequential(
+          (0): Conv2d(1024, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (4): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+    (up2): Up(
+      (up): Upsample(scale_factor=2.0, mode='bilinear')
+      (conv): DoubleConv(
+        (double_conv): Sequential(
+          (0): Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (4): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+    (up3): Up(
+      (up): Upsample(scale_factor=2.0, mode='bilinear')
+      (conv): DoubleConv(
+        (double_conv): Sequential(
+          (0): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (4): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+    (up4): Up(
+      (up): Upsample(scale_factor=2.0, mode='bilinear')
+      (conv): DoubleConv(
+        (double_conv): Sequential(
+          (0): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (4): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+    (outc): OutConv(
+      (conv): Conv2d(64, 1, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+  (decoder): ConformerDecoder(
+    (day_activation): Softsign()
+    (day_dropout): Dropout(p=0.2, inplace=False)
+    (day_weights): ParameterList(
+        (0): Parameter containing: [torch.float32 of size 512x512]
+        (1): Parameter containing: [torch.float32 of size 512x512]
+        (2): Parameter containing: [torch.float32 of size 512x512]
+        (3): Parameter containing: [torch.float32 of size 512x512]
+        (4): Parameter containing: [torch.float32 of size 512x512]
+        (5): Parameter containing: [torch.float32 of size 512x512]
+        (6): Parameter containing: [torch.float32 of size 512x512]
+        (7): Parameter containing: [torch.float32 of size 512x512]
+        (8): Parameter containing: [torch.float32 of size 512x512]
+        (9): Parameter containing: [torch.float32 of size 512x512]
+        (10): Parameter containing: [torch.float32 of size 512x512]
+        (11): Parameter containing: [torch.float32 of size 512x512]
+        (12): Parameter containing: [torch.float32 of size 512x512]
+        (13): Parameter containing: [torch.float32 of size 512x512]
+        (14): Parameter containing: [torch.float32 of size 512x512]
+        (15): Parameter containing: [torch.float32 of size 512x512]
+        (16): Parameter containing: [torch.float32 of size 512x512]
+        (17): Parameter containing: [torch.float32 of size 512x512]
+        (18): Parameter containing: [torch.float32 of size 512x512]
+        (19): Parameter containing: [torch.float32 of size 512x512]
+        (20): Parameter containing: [torch.float32 of size 512x512]
+        (21): Parameter containing: [torch.float32 of size 512x512]
+        (22): Parameter containing: [torch.float32 of size 512x512]
+        (23): Parameter containing: [torch.float32 of size 512x512]
+        (24): Parameter containing: [torch.float32 of size 512x512]
+        (25): Parameter containing: [torch.float32 of size 512x512]
+        (26): Parameter containing: [torch.float32 of size 512x512]
+        (27): Parameter containing: [torch.float32 of size 512x512]
+        (28): Parameter containing: [torch.float32 of size 512x512]
+        (29): Parameter containing: [torch.float32 of size 512x512]
+        (30): Parameter containing: [torch.float32 of size 512x512]
+        (31): Parameter containing: [torch.float32 of size 512x512]
+        (32): Parameter containing: [torch.float32 of size 512x512]
+        (33): Parameter containing: [torch.float32 of size 512x512]
+        (34): Parameter containing: [torch.float32 of size 512x512]
+        (35): Parameter containing: [torch.float32 of size 512x512]
+        (36): Parameter containing: [torch.float32 of size 512x512]
+        (37): Parameter containing: [torch.float32 of size 512x512]
+        (38): Parameter containing: [torch.float32 of size 512x512]
+        (39): Parameter containing: [torch.float32 of size 512x512]
+        (40): Parameter containing: [torch.float32 of size 512x512]
+        (41): Parameter containing: [torch.float32 of size 512x512]
+        (42): Parameter containing: [torch.float32 of size 512x512]
+        (43): Parameter containing: [torch.float32 of size 512x512]
+        (44): Parameter containing: [torch.float32 of size 512x512]
+    )
+    (day_biases): ParameterList(
+        (0): Parameter containing: [torch.float32 of size 1x512]
+        (1): Parameter containing: [torch.float32 of size 1x512]
+        (2): Parameter containing: [torch.float32 of size 1x512]
+        (3): Parameter containing: [torch.float32 of size 1x512]
+        (4): Parameter containing: [torch.float32 of size 1x512]
+        (5): Parameter containing: [torch.float32 of size 1x512]
+        (6): Parameter containing: [torch.float32 of size 1x512]
+        (7): Parameter containing: [torch.float32 of size 1x512]
+        (8): Parameter containing: [torch.float32 of size 1x512]
+        (9): Parameter containing: [torch.float32 of size 1x512]
+        (10): Parameter containing: [torch.float32 of size 1x512]
+        (11): Parameter containing: [torch.float32 of size 1x512]
+        (12): Parameter containing: [torch.float32 of size 1x512]
+        (13): Parameter containing: [torch.float32 of size 1x512]
+        (14): Parameter containing: [torch.float32 of size 1x512]
+        (15): Parameter containing: [torch.float32 of size 1x512]
+        (16): Parameter containing: [torch.float32 of size 1x512]
+        (17): Parameter containing: [torch.float32 of size 1x512]
+        (18): Parameter containing: [torch.float32 of size 1x512]
+        (19): Parameter containing: [torch.float32 of size 1x512]
+        (20): Parameter containing: [torch.float32 of size 1x512]
+        (21): Parameter containing: [torch.float32 of size 1x512]
+        (22): Parameter containing: [torch.float32 of size 1x512]
+        (23): Parameter containing: [torch.float32 of size 1x512]
+        (24): Parameter containing: [torch.float32 of size 1x512]
+        (25): Parameter containing: [torch.float32 of size 1x512]
+        (26): Parameter containing: [torch.float32 of size 1x512]
+        (27): Parameter containing: [torch.float32 of size 1x512]
+        (28): Parameter containing: [torch.float32 of size 1x512]
+        (29): Parameter containing: [torch.float32 of size 1x512]
+        (30): Parameter containing: [torch.float32 of size 1x512]
+        (31): Parameter containing: [torch.float32 of size 1x512]
+        (32): Parameter containing: [torch.float32 of size 1x512]
+        (33): Parameter containing: [torch.float32 of size 1x512]
+        (34): Parameter containing: [torch.float32 of size 1x512]
+        (35): Parameter containing: [torch.float32 of size 1x512]
+        (36): Parameter containing: [torch.float32 of size 1x512]
+        (37): Parameter containing: [torch.float32 of size 1x512]
+        (38): Parameter containing: [torch.float32 of size 1x512]
+        (39): Parameter containing: [torch.float32 of size 1x512]
+        (40): Parameter containing: [torch.float32 of size 1x512]
+        (41): Parameter containing: [torch.float32 of size 1x512]
+        (42): Parameter containing: [torch.float32 of size 1x512]
+        (43): Parameter containing: [torch.float32 of size 1x512]
+        (44): Parameter containing: [torch.float32 of size 1x512]
+    )
+    (input_proj): Sequential(
+      (0): Linear(in_features=7168, out_features=256, bias=True)
+      (1): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+      (2): Dropout(p=0.2, inplace=False)
+    )
+    (pre_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+    (conformer): Conformer(
+      (conformer_layers): ModuleList(
+        (0-3): 4 x ConformerLayer(
+          (ffn1): _FeedForwardModule(
+            (sequential): Sequential(
+              (0): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+              (1): Linear(in_features=256, out_features=512, bias=True)
+              (2): SiLU()
+              (3): Dropout(p=0.2, inplace=False)
+              (4): Linear(in_features=512, out_features=256, bias=True)
+              (5): Dropout(p=0.2, inplace=False)
+            )
+          )
+          (self_attn_layer_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+          (self_attn): MultiheadAttention(
+            (out_proj): NonDynamicallyQuantizableLinear(in_features=256, out_features=256, bias=True)
+          )
+          (self_attn_dropout): Dropout(p=0.2, inplace=False)
+          (conv_module): _ConvolutionModule(
+            (layer_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+            (sequential): Sequential(
+              (0): Conv1d(256, 512, kernel_size=(1,), stride=(1,))
+              (1): GLU(dim=1)
+              (2): Conv1d(256, 256, kernel_size=(15,), stride=(1,), padding=(7,), groups=256)
+              (3): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (4): SiLU()
+              (5): Conv1d(256, 256, kernel_size=(1,), stride=(1,))
+              (6): Dropout(p=0.2, inplace=False)
+            )
+          )
+          (ffn2): _FeedForwardModule(
+            (sequential): Sequential(
+              (0): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+              (1): Linear(in_features=256, out_features=512, bias=True)
+              (2): SiLU()
+              (3): Dropout(p=0.2, inplace=False)
+              (4): Linear(in_features=512, out_features=256, bias=True)
+              (5): Dropout(p=0.2, inplace=False)
+            )
+          )
+          (final_layer_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+    (output_dropout): Dropout(p=0.1, inplace=False)
+    (out): Linear(in_features=256, out_features=41, bias=True)
+  )
+)
+2025-12-16 18:00:31,788: Model has 34,902,826 parameters
+2025-12-16 18:00:31,788: Model has 11,819,520 day-specific parameters | 33.86% of total parameters
+2025-12-16 18:00:40,314: Successfully initialized datasets
+2025-12-16 18:00:41,939: Train batch 0: loss: 28.47 grad norm: 38.18 time: 1.228
+2025-12-16 18:00:41,939: Running test after training batch: 0
+2025-12-16 18:01:10,553: Val batch 0: PER (avg): 4.3493 CTC Loss (avg): 24.8033 time: 28.613
+2025-12-16 18:01:10,553: t15.2023.08.11 val PER: 1.0000
+2025-12-16 18:01:10,553: t15.2023.08.13 val PER: 3.4127
+2025-12-16 18:01:10,553: t15.2023.08.18 val PER: 4.0712
+2025-12-16 18:01:10,553: t15.2023.08.20 val PER: 3.8427
+2025-12-16 18:01:10,553: t15.2023.08.25 val PER: 3.9593
+2025-12-16 18:01:10,553: t15.2023.08.27 val PER: 3.4582
+2025-12-16 18:01:10,554: t15.2023.09.01 val PER: 4.0528
+2025-12-16 18:01:10,554: t15.2023.09.03 val PER: 3.7981
+2025-12-16 18:01:10,554: t15.2023.09.24 val PER: 4.4187
+2025-12-16 18:01:10,554: t15.2023.09.29 val PER: 4.4716
+2025-12-16 18:01:10,554: t15.2023.10.01 val PER: 3.5522
+2025-12-16 18:01:10,554: t15.2023.10.06 val PER: 4.3649
+2025-12-16 18:01:10,554: t15.2023.10.08 val PER: 3.3369
+2025-12-16 18:01:10,554: t15.2023.10.13 val PER: 4.1707
+2025-12-16 18:01:10,554: t15.2023.10.15 val PER: 4.4384
+2025-12-16 18:01:10,554: t15.2023.10.20 val PER: 4.7483
+2025-12-16 18:01:10,554: t15.2023.10.22 val PER: 4.3163
+2025-12-16 18:01:10,554: t15.2023.11.03 val PER: 5.0760
+2025-12-16 18:01:10,554: t15.2023.11.04 val PER: 5.8840
+2025-12-16 18:01:10,554: t15.2023.11.17 val PER: 6.5241
+2025-12-16 18:01:10,554: t15.2023.11.19 val PER: 5.3653
+2025-12-16 18:01:10,554: t15.2023.11.26 val PER: 4.7812
+2025-12-16 18:01:10,554: t15.2023.12.03 val PER: 4.1250
+2025-12-16 18:01:10,554: t15.2023.12.08 val PER: 4.6997
+2025-12-16 18:01:10,554: t15.2023.12.10 val PER: 5.2089
+2025-12-16 18:01:10,555: t15.2023.12.17 val PER: 4.1424
+2025-12-16 18:01:10,555: t15.2023.12.29 val PER: 4.1373
+2025-12-16 18:01:10,555: t15.2024.02.25 val PER: 4.2893
+2025-12-16 18:01:10,555: t15.2024.03.03 val PER: 1.0000
+2025-12-16 18:01:10,555: t15.2024.03.08 val PER: 4.0114
+2025-12-16 18:01:10,555: t15.2024.03.15 val PER: 4.1251
+2025-12-16 18:01:10,555: t15.2024.03.17 val PER: 4.3389
+2025-12-16 18:01:10,555: t15.2024.04.25 val PER: 1.0000
+2025-12-16 18:01:10,555: t15.2024.04.28 val PER: 1.0000
+2025-12-16 18:01:10,555: t15.2024.05.10 val PER: 4.1174
+2025-12-16 18:01:10,555: t15.2024.06.14 val PER: 4.8344
+2025-12-16 18:01:10,555: t15.2024.07.19 val PER: 3.2044
+2025-12-16 18:01:10,555: t15.2024.07.21 val PER: 5.1076
+2025-12-16 18:01:10,555: t15.2024.07.28 val PER: 5.0029
+2025-12-16 18:01:10,555: t15.2025.01.10 val PER: 3.2893
+2025-12-16 18:01:10,555: t15.2025.01.12 val PER: 5.5858
+2025-12-16 18:01:10,555: t15.2025.03.14 val PER: 3.1627
+2025-12-16 18:01:10,555: t15.2025.03.16 val PER: 5.4987
+2025-12-16 18:01:10,555: t15.2025.03.30 val PER: 4.1575
+2025-12-16 18:01:10,556: t15.2025.04.13 val PER: 4.6819
+2025-12-16 18:01:10,556: New best test PER inf --> 4.3493
+2025-12-16 18:01:10,556: Checkpointing model
+2025-12-16 18:01:10,731: Saved model to checkpoint: trained_models/baseline_conformer_unet_20251216_180031/checkpoint/best_checkpoint
+2025-12-16 18:01:56,788: Train batch 200: loss: 23.50 grad norm: 53.76 time: 0.197
+2025-12-16 18:02:41,474: Train batch 400: loss: 15.84 grad norm: 79.10 time: 0.223
+2025-12-16 18:03:27,015: Train batch 600: loss: 7.97 grad norm: 55.07 time: 0.201
+2025-12-16 18:04:11,529: Train batch 800: loss: 4.80 grad norm: 24.54 time: 0.296
+2025-12-16 18:04:56,411: Train batch 1000: loss: 3.55 grad norm: 3.77 time: 0.257
+2025-12-16 18:05:40,707: Train batch 1200: loss: 3.43 grad norm: 0.44 time: 0.195
+2025-12-16 18:06:25,811: Train batch 1400: loss: 3.29 grad norm: 0.75 time: 0.202
+2025-12-16 18:07:10,961: Train batch 1600: loss: 3.21 grad norm: 1.38 time: 0.182
+2025-12-16 18:07:55,790: Train batch 1800: loss: 3.21 grad norm: 0.66 time: 0.188
+2025-12-16 18:08:39,927: Train batch 2000: loss: 3.18 grad norm: 0.99 time: 0.205
+2025-12-16 18:08:39,927: Running test after training batch: 2000
+2025-12-16 18:09:05,757: Val batch 2000: PER (avg): 0.8370 CTC Loss (avg): 4.0122 time: 25.830
+2025-12-16 18:09:05,757: t15.2023.08.11 val PER: 1.0000
+2025-12-16 18:09:05,757: t15.2023.08.13 val PER: 0.7921
+2025-12-16 18:09:05,757: t15.2023.08.18 val PER: 0.8240
+2025-12-16 18:09:05,757: t15.2023.08.20 val PER: 0.7776
+2025-12-16 18:09:05,757: t15.2023.08.25 val PER: 0.8223
+2025-12-16 18:09:05,757: t15.2023.08.27 val PER: 0.8553
+2025-12-16 18:09:05,758: t15.2023.09.01 val PER: 0.7938
+2025-12-16 18:09:05,758: t15.2023.09.03 val PER: 0.8385
+2025-12-16 18:09:05,758: t15.2023.09.24 val PER: 0.8362
+2025-12-16 18:09:05,758: t15.2023.09.29 val PER: 0.7939
+2025-12-16 18:09:05,758: t15.2023.10.01 val PER: 0.8203
+2025-12-16 18:09:05,758: t15.2023.10.06 val PER: 0.7987
+2025-12-16 18:09:05,758: t15.2023.10.08 val PER: 0.8363
+2025-12-16 18:09:05,758: t15.2023.10.13 val PER: 0.8433
+2025-12-16 18:09:05,758: t15.2023.10.15 val PER: 0.8214
+2025-12-16 18:09:05,758: t15.2023.10.20 val PER: 0.7550
+2025-12-16 18:09:05,758: t15.2023.10.22 val PER: 0.8341
+2025-12-16 18:09:05,758: t15.2023.11.03 val PER: 0.8704
+2025-12-16 18:09:05,758: t15.2023.11.04 val PER: 0.9147
+2025-12-16 18:09:05,758: t15.2023.11.17 val PER: 0.8507
+2025-12-16 18:09:05,758: t15.2023.11.19 val PER: 0.8443
+2025-12-16 18:09:05,758: t15.2023.11.26 val PER: 0.8420
+2025-12-16 18:09:05,758: t15.2023.12.03 val PER: 0.8666
+2025-12-16 18:09:05,758: t15.2023.12.08 val PER: 0.8196
+2025-12-16 18:09:05,758: t15.2023.12.10 val PER: 0.8410
+2025-12-16 18:09:05,759: t15.2023.12.17 val PER: 0.9148
+2025-12-16 18:09:05,759: t15.2023.12.29 val PER: 0.8771
+2025-12-16 18:09:05,759: t15.2024.02.25 val PER: 0.7767
+2025-12-16 18:09:05,759: t15.2024.03.03 val PER: 1.0000
+2025-12-16 18:09:05,759: t15.2024.03.08 val PER: 0.8805
+2025-12-16 18:09:05,759: t15.2024.03.15 val PER: 0.8599
+2025-12-16 18:09:05,759: t15.2024.03.17 val PER: 0.8096
+2025-12-16 18:09:05,759: t15.2024.04.25 val PER: 1.0000
+2025-12-16 18:09:05,759: t15.2024.04.28 val PER: 1.0000
+2025-12-16 18:09:05,759: t15.2024.05.10 val PER: 0.8975
+2025-12-16 18:09:05,759: t15.2024.06.14 val PER: 0.8044
+2025-12-16 18:09:05,759: t15.2024.07.19 val PER: 0.8688
+2025-12-16 18:09:05,759: t15.2024.07.21 val PER: 0.8234
+2025-12-16 18:09:05,759: t15.2024.07.28 val PER: 0.8228
+2025-12-16 18:09:05,759: t15.2025.01.10 val PER: 0.9118
+2025-12-16 18:09:05,759: t15.2025.01.12 val PER: 0.8399
+2025-12-16 18:09:05,759: t15.2025.03.14 val PER: 0.9186
+2025-12-16 18:09:05,759: t15.2025.03.16 val PER: 0.7853
+2025-12-16 18:09:05,759: t15.2025.03.30 val PER: 0.9126
+2025-12-16 18:09:05,759: t15.2025.04.13 val PER: 0.7989
+2025-12-16 18:09:05,760: New best test PER 4.3493 --> 0.8370
+2025-12-16 18:09:05,760: Checkpointing model
+2025-12-16 18:09:06,307: Saved model to checkpoint: trained_models/baseline_conformer_unet_20251216_180031/checkpoint/best_checkpoint
+2025-12-16 18:09:50,178: Train batch 2200: loss: 3.19 grad norm: 1.18 time: 0.225
+2025-12-16 18:10:32,381: Train batch 2400: loss: 3.20 grad norm: 1.34 time: 0.218
+2025-12-16 18:11:14,804: Train batch 2600: loss: 3.07 grad norm: 1.61 time: 0.259
+2025-12-16 18:11:57,334: Train batch 2800: loss: 3.04 grad norm: 1.42 time: 0.177
+2025-12-16 18:12:40,526: Train batch 3000: loss: 3.03 grad norm: 1.68 time: 0.210
+2025-12-16 18:13:23,415: Train batch 3200: loss: 3.06 grad norm: 1.61 time: 0.262
+2025-12-16 18:14:04,695: Train batch 3400: loss: 3.04 grad norm: 1.77 time: 0.152
+2025-12-16 18:14:47,200: Train batch 3600: loss: 2.98 grad norm: 1.74 time: 0.237
+2025-12-16 18:15:29,655: Train batch 3800: loss: 2.82 grad norm: 1.33 time: 0.230
+2025-12-16 18:16:13,129: Train batch 4000: loss: 2.82 grad norm: 1.93 time: 0.171
+2025-12-16 18:16:13,130: Running test after training batch: 4000
+2025-12-16 18:16:39,207: Val batch 4000: PER (avg): 0.7277 CTC Loss (avg): 3.9804 time: 26.077
+2025-12-16 18:16:39,207: t15.2023.08.11 val PER: 1.0000
+2025-12-16 18:16:39,207: t15.2023.08.13 val PER: 0.6923
+2025-12-16 18:16:39,207: t15.2023.08.18 val PER: 0.7133
+2025-12-16 18:16:39,207: t15.2023.08.20 val PER: 0.7109
+2025-12-16 18:16:39,207: t15.2023.08.25 val PER: 0.7289
+2025-12-16 18:16:39,207: t15.2023.08.27 val PER: 0.8055
+2025-12-16 18:16:39,207: t15.2023.09.01 val PER: 0.6989
+2025-12-16 18:16:39,207: t15.2023.09.03 val PER: 0.7411
+2025-12-16 18:16:39,207: t15.2023.09.24 val PER: 0.7245
+2025-12-16 18:16:39,207: t15.2023.09.29 val PER: 0.7122
+2025-12-16 18:16:39,208: t15.2023.10.01 val PER: 0.7173
+2025-12-16 18:16:39,208: t15.2023.10.06 val PER: 0.7094
+2025-12-16 18:16:39,208: t15.2023.10.08 val PER: 0.7212
+2025-12-16 18:16:39,208: t15.2023.10.13 val PER: 0.7378
+2025-12-16 18:16:39,208: t15.2023.10.15 val PER: 0.7212
+2025-12-16 18:16:39,208: t15.2023.10.20 val PER: 0.6779
+2025-12-16 18:16:39,208: t15.2023.10.22 val PER: 0.6860
+2025-12-16 18:16:39,208: t15.2023.11.03 val PER: 0.7123
+2025-12-16 18:16:39,208: t15.2023.11.04 val PER: 0.6997
+2025-12-16 18:16:39,208: t15.2023.11.17 val PER: 0.6967
+2025-12-16 18:16:39,208: t15.2023.11.19 val PER: 0.6766
+2025-12-16 18:16:39,208: t15.2023.11.26 val PER: 0.7551
+2025-12-16 18:16:39,208: t15.2023.12.03 val PER: 0.7595
+2025-12-16 18:16:39,208: t15.2023.12.08 val PER: 0.7190
+2025-12-16 18:16:39,208: t15.2023.12.10 val PER: 0.7148
+2025-12-16 18:16:39,208: t15.2023.12.17 val PER: 0.7536
+2025-12-16 18:16:39,208: t15.2023.12.29 val PER: 0.7605
+2025-12-16 18:16:39,208: t15.2024.02.25 val PER: 0.6882
+2025-12-16 18:16:39,208: t15.2024.03.03 val PER: 1.0000
+2025-12-16 18:16:39,208: t15.2024.03.08 val PER: 0.7013
+2025-12-16 18:16:39,209: t15.2024.03.15 val PER: 0.7717
+2025-12-16 18:16:39,209: t15.2024.03.17 val PER: 0.7155
+2025-12-16 18:16:39,209: t15.2024.04.25 val PER: 1.0000
+2025-12-16 18:16:39,209: t15.2024.04.28 val PER: 1.0000
+2025-12-16 18:16:39,209: t15.2024.05.10 val PER: 0.7593
+2025-12-16 18:16:39,209: t15.2024.06.14 val PER: 0.7082
+2025-12-16 18:16:39,209: t15.2024.07.19 val PER: 0.7376
+2025-12-16 18:16:39,209: t15.2024.07.21 val PER: 0.7414
+2025-12-16 18:16:39,209: t15.2024.07.28 val PER: 0.7287
+2025-12-16 18:16:39,209: t15.2025.01.10 val PER: 0.7851
+2025-12-16 18:16:39,209: t15.2025.01.12 val PER: 0.7283
+2025-12-16 18:16:39,209: t15.2025.03.14 val PER: 0.7485
+2025-12-16 18:16:39,209: t15.2025.03.16 val PER: 0.7055
+2025-12-16 18:16:39,209: t15.2025.03.30 val PER: 0.7517
+2025-12-16 18:16:39,209: t15.2025.04.13 val PER: 0.7389
+2025-12-16 18:16:39,209: New best test PER 0.8370 --> 0.7277
+2025-12-16 18:16:39,209: Checkpointing model
+2025-12-16 18:16:39,797: Saved model to checkpoint: trained_models/baseline_conformer_unet_20251216_180031/checkpoint/best_checkpoint
+2025-12-16 18:17:21,245: Train batch 4200: loss: 2.80 grad norm: 1.98 time: 0.147
+2025-12-16 18:18:03,025: Train batch 4400: loss: 2.83 grad norm: 2.00 time: 0.244
+2025-12-16 18:18:44,814: Train batch 4600: loss: 2.80 grad norm: 1.75 time: 0.197
+2025-12-16 18:19:27,107: Train batch 4800: loss: 2.84 grad norm: 2.13 time: 0.210
+2025-12-16 18:20:09,909: Train batch 5000: loss: 2.91 grad norm: 2.28 time: 0.305
+2025-12-16 18:20:53,672: Train batch 5200: loss: 2.54 grad norm: 2.28 time: 0.198
+2025-12-16 18:21:37,788: Train batch 5400: loss: 2.74 grad norm: 2.00 time: 0.180
+2025-12-16 18:22:20,674: Train batch 5600: loss: 2.74 grad norm: 2.73 time: 0.182
+2025-12-16 18:23:04,321: Train batch 5800: loss: 2.73 grad norm: 1.97 time: 0.203
+2025-12-16 18:23:46,684: Train batch 6000: loss: 2.49 grad norm: 2.44 time: 0.190
+2025-12-16 18:23:46,684: Running test after training batch: 6000
+2025-12-16 18:24:12,727: Val batch 6000: PER (avg): 0.6129 CTC Loss (avg): 3.0659 time: 26.043
+2025-12-16 18:24:12,728: t15.2023.08.11 val PER: 1.0000
+2025-12-16 18:24:12,728: t15.2023.08.13 val PER: 0.5613
+2025-12-16 18:24:12,728: t15.2023.08.18 val PER: 0.5809
+2025-12-16 18:24:12,728: t15.2023.08.20 val PER: 0.5798
+2025-12-16 18:24:12,728: t15.2023.08.25 val PER: 0.5843
+2025-12-16 18:24:12,728: t15.2023.08.27 val PER: 0.6463
+2025-12-16 18:24:12,728: t15.2023.09.01 val PER: 0.5698
+2025-12-16 18:24:12,728: t15.2023.09.03 val PER: 0.6045
+2025-12-16 18:24:12,728: t15.2023.09.24 val PER: 0.5995
+2025-12-16 18:24:12,728: t15.2023.09.29 val PER: 0.6114
+2025-12-16 18:24:12,728: t15.2023.10.01 val PER: 0.6301
+2025-12-16 18:24:12,728: t15.2023.10.06 val PER: 0.6006
+2025-12-16 18:24:12,729: t15.2023.10.08 val PER: 0.6292
+2025-12-16 18:24:12,729: t15.2023.10.13 val PER: 0.6726
+2025-12-16 18:24:12,729: t15.2023.10.15 val PER: 0.6078
+2025-12-16 18:24:12,729: t15.2023.10.20 val PER: 0.5772
+2025-12-16 18:24:12,729: t15.2023.10.22 val PER: 0.5713
+2025-12-16 18:24:12,729: t15.2023.11.03 val PER: 0.6194
+2025-12-16 18:24:12,729: t15.2023.11.04 val PER: 0.5154
+2025-12-16 18:24:12,729: t15.2023.11.17 val PER: 0.5568
+2025-12-16 18:24:12,729: t15.2023.11.19 val PER: 0.5289
+2025-12-16 18:24:12,729: t15.2023.11.26 val PER: 0.6652
+2025-12-16 18:24:12,729: t15.2023.12.03 val PER: 0.6092
+2025-12-16 18:24:12,729: t15.2023.12.08 val PER: 0.6125
+2025-12-16 18:24:12,729: t15.2023.12.10 val PER: 0.6045
+2025-12-16 18:24:12,729: t15.2023.12.17 val PER: 0.6227
+2025-12-16 18:24:12,729: t15.2023.12.29 val PER: 0.6280
+2025-12-16 18:24:12,729: t15.2024.02.25 val PER: 0.5871
+2025-12-16 18:24:12,729: t15.2024.03.03 val PER: 1.0000
+2025-12-16 18:24:12,729: t15.2024.03.08 val PER: 0.6287
+2025-12-16 18:24:12,729: t15.2024.03.15 val PER: 0.6504
+2025-12-16 18:24:12,730: t15.2024.03.17 val PER: 0.5976
+2025-12-16 18:24:12,730: t15.2024.04.25 val PER: 1.0000
+2025-12-16 18:24:12,730: t15.2024.04.28 val PER: 1.0000
+2025-12-16 18:24:12,730: t15.2024.05.10 val PER: 0.6092
+2025-12-16 18:24:12,730: t15.2024.06.14 val PER: 0.6136
+2025-12-16 18:24:12,730: t15.2024.07.19 val PER: 0.6506
+2025-12-16 18:24:12,730: t15.2024.07.21 val PER: 0.5724
+2025-12-16 18:24:12,730: t15.2024.07.28 val PER: 0.5956
+2025-12-16 18:24:12,730: t15.2025.01.10 val PER: 0.6639
+2025-12-16 18:24:12,730: t15.2025.01.12 val PER: 0.6035
+2025-12-16 18:24:12,730: t15.2025.03.14 val PER: 0.7175
+2025-12-16 18:24:12,730: t15.2025.03.16 val PER: 0.6060
+2025-12-16 18:24:12,730: t15.2025.03.30 val PER: 0.6805
+2025-12-16 18:24:12,730: t15.2025.04.13 val PER: 0.6191
+2025-12-16 18:24:12,730: New best test PER 0.7277 --> 0.6129
+2025-12-16 18:24:12,730: Checkpointing model
+2025-12-16 18:24:13,330: Saved model to checkpoint: trained_models/baseline_conformer_unet_20251216_180031/checkpoint/best_checkpoint
+2025-12-16 18:24:56,491: Train batch 6200: loss: 2.50 grad norm: 2.26 time: 0.182
+2025-12-16 18:25:38,520: Train batch 6400: loss: 2.51 grad norm: 2.32 time: 0.190
+2025-12-16 18:26:21,587: Train batch 6600: loss: 2.60 grad norm: 2.02 time: 0.228
+2025-12-16 19:21:32,862: Train batch 6800: loss: 2.54 grad norm: 2.46 time: 0.195
+2025-12-16 19:22:17,433: Train batch 7000: loss: 2.53 grad norm: 2.70 time: 0.178
+2025-12-16 19:23:01,177: Train batch 7200: loss: 2.55 grad norm: 2.47 time: 0.269
+2025-12-16 19:23:44,456: Train batch 7400: loss: 2.45 grad norm: 1.76 time: 0.244

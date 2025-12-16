@@ -611,14 +611,15 @@ class BrainToTextDecoder_Trainer:
                     smoothed = (1 - self.ctc_label_smoothing) * probs + self.ctc_label_smoothing / probs.size(-1)
                     log_probs = smoothed.clamp(min=1e-12).log()
 
-                loss = self.ctc_loss(
+                loss_per_sample = self.ctc_loss(
                     log_probs = torch.permute(log_probs, [1, 0, 2]),
                     targets = labels,
                     input_lengths = adjusted_lens,
                     target_lengths = phone_seq_lens
                     )
-                    
-                loss = torch.mean(loss) # take mean loss over batches
+
+                # Length-normalized CTC loss to reduce batch-length variance
+                loss = loss_per_sample.sum() / (phone_seq_lens.sum() + 1e-6)
             
             loss.backward()
 
@@ -789,13 +790,13 @@ class BrainToTextDecoder_Trainer:
 
                     logits = self.model(features, day_indicies)
     
-                    loss = self.ctc_loss(
+                    loss_per_sample = self.ctc_loss(
                         torch.permute(logits.log_softmax(2), [1, 0, 2]),
                         labels,
                         adjusted_lens,
                         phone_seq_lens,
                     )
-                    loss = torch.mean(loss)
+                    loss = loss_per_sample.sum() / (phone_seq_lens.sum() + 1e-6)
 
                 metrics['losses'].append(loss.cpu().detach().numpy())
 

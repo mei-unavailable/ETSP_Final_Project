@@ -108,7 +108,8 @@ Open a **third terminal** (or use the original one), navigate to `model_training
 ```bash
 cd model_training
 python evaluate_model.py \
-    --model_path trained_models/baseline_conformer_v1_20251208_190614 \
+    --model_path 
+    trained_models/baseline_conformer_unet_20251215_220400 \
     --data_dir ../data/hdf5_data_final \
     --eval_type test \
     --gpu_number 0

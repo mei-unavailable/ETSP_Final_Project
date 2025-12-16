@@ -1,0 +1,157 @@
+2025-12-16 17:50:21,605: Using device: cuda:0
+2025-12-16 17:50:21,608: Using precomputed U-Net features. Initializing standard Conformer.
+2025-12-16 17:50:21,674: Initialized RNN decoding model
+2025-12-16 17:50:21,674: ConformerDecoder(
+  (day_activation): Softsign()
+  (day_dropout): Dropout(p=0.2, inplace=False)
+  (day_weights): ParameterList(
+      (0): Parameter containing: [torch.float32 of size 512x512]
+      (1): Parameter containing: [torch.float32 of size 512x512]
+      (2): Parameter containing: [torch.float32 of size 512x512]
+      (3): Parameter containing: [torch.float32 of size 512x512]
+      (4): Parameter containing: [torch.float32 of size 512x512]
+      (5): Parameter containing: [torch.float32 of size 512x512]
+      (6): Parameter containing: [torch.float32 of size 512x512]
+      (7): Parameter containing: [torch.float32 of size 512x512]
+      (8): Parameter containing: [torch.float32 of size 512x512]
+      (9): Parameter containing: [torch.float32 of size 512x512]
+      (10): Parameter containing: [torch.float32 of size 512x512]
+      (11): Parameter containing: [torch.float32 of size 512x512]
+      (12): Parameter containing: [torch.float32 of size 512x512]
+      (13): Parameter containing: [torch.float32 of size 512x512]
+      (14): Parameter containing: [torch.float32 of size 512x512]
+      (15): Parameter containing: [torch.float32 of size 512x512]
+      (16): Parameter containing: [torch.float32 of size 512x512]
+      (17): Parameter containing: [torch.float32 of size 512x512]
+      (18): Parameter containing: [torch.float32 of size 512x512]
+      (19): Parameter containing: [torch.float32 of size 512x512]
+      (20): Parameter containing: [torch.float32 of size 512x512]
+      (21): Parameter containing: [torch.float32 of size 512x512]
+      (22): Parameter containing: [torch.float32 of size 512x512]
+      (23): Parameter containing: [torch.float32 of size 512x512]
+      (24): Parameter containing: [torch.float32 of size 512x512]
+      (25): Parameter containing: [torch.float32 of size 512x512]
+      (26): Parameter containing: [torch.float32 of size 512x512]
+      (27): Parameter containing: [torch.float32 of size 512x512]
+      (28): Parameter containing: [torch.float32 of size 512x512]
+      (29): Parameter containing: [torch.float32 of size 512x512]
+      (30): Parameter containing: [torch.float32 of size 512x512]
+      (31): Parameter containing: [torch.float32 of size 512x512]
+      (32): Parameter containing: [torch.float32 of size 512x512]
+      (33): Parameter containing: [torch.float32 of size 512x512]
+      (34): Parameter containing: [torch.float32 of size 512x512]
+      (35): Parameter containing: [torch.float32 of size 512x512]
+      (36): Parameter containing: [torch.float32 of size 512x512]
+      (37): Parameter containing: [torch.float32 of size 512x512]
+      (38): Parameter containing: [torch.float32 of size 512x512]
+      (39): Parameter containing: [torch.float32 of size 512x512]
+      (40): Parameter containing: [torch.float32 of size 512x512]
+      (41): Parameter containing: [torch.float32 of size 512x512]
+      (42): Parameter containing: [torch.float32 of size 512x512]
+      (43): Parameter containing: [torch.float32 of size 512x512]
+      (44): Parameter containing: [torch.float32 of size 512x512]
+  )
+  (day_biases): ParameterList(
+      (0): Parameter containing: [torch.float32 of size 1x512]
+      (1): Parameter containing: [torch.float32 of size 1x512]
+      (2): Parameter containing: [torch.float32 of size 1x512]
+      (3): Parameter containing: [torch.float32 of size 1x512]
+      (4): Parameter containing: [torch.float32 of size 1x512]
+      (5): Parameter containing: [torch.float32 of size 1x512]
+      (6): Parameter containing: [torch.float32 of size 1x512]
+      (7): Parameter containing: [torch.float32 of size 1x512]
+      (8): Parameter containing: [torch.float32 of size 1x512]
+      (9): Parameter containing: [torch.float32 of size 1x512]
+      (10): Parameter containing: [torch.float32 of size 1x512]
+      (11): Parameter containing: [torch.float32 of size 1x512]
+      (12): Parameter containing: [torch.float32 of size 1x512]
+      (13): Parameter containing: [torch.float32 of size 1x512]
+      (14): Parameter containing: [torch.float32 of size 1x512]
+      (15): Parameter containing: [torch.float32 of size 1x512]
+      (16): Parameter containing: [torch.float32 of size 1x512]
+      (17): Parameter containing: [torch.float32 of size 1x512]
+      (18): Parameter containing: [torch.float32 of size 1x512]
+      (19): Parameter containing: [torch.float32 of size 1x512]
+      (20): Parameter containing: [torch.float32 of size 1x512]
+      (21): Parameter containing: [torch.float32 of size 1x512]
+      (22): Parameter containing: [torch.float32 of size 1x512]
+      (23): Parameter containing: [torch.float32 of size 1x512]
+      (24): Parameter containing: [torch.float32 of size 1x512]
+      (25): Parameter containing: [torch.float32 of size 1x512]
+      (26): Parameter containing: [torch.float32 of size 1x512]
+      (27): Parameter containing: [torch.float32 of size 1x512]
+      (28): Parameter containing: [torch.float32 of size 1x512]
+      (29): Parameter containing: [torch.float32 of size 1x512]
+      (30): Parameter containing: [torch.float32 of size 1x512]
+      (31): Parameter containing: [torch.float32 of size 1x512]
+      (32): Parameter containing: [torch.float32 of size 1x512]
+      (33): Parameter containing: [torch.float32 of size 1x512]
+      (34): Parameter containing: [torch.float32 of size 1x512]
+      (35): Parameter containing: [torch.float32 of size 1x512]
+      (36): Parameter containing: [torch.float32 of size 1x512]
+      (37): Parameter containing: [torch.float32 of size 1x512]
+      (38): Parameter containing: [torch.float32 of size 1x512]
+      (39): Parameter containing: [torch.float32 of size 1x512]
+      (40): Parameter containing: [torch.float32 of size 1x512]
+      (41): Parameter containing: [torch.float32 of size 1x512]
+      (42): Parameter containing: [torch.float32 of size 1x512]
+      (43): Parameter containing: [torch.float32 of size 1x512]
+      (44): Parameter containing: [torch.float32 of size 1x512]
+  )
+  (input_proj): Sequential(
+    (0): Linear(in_features=7168, out_features=256, bias=True)
+    (1): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+    (2): Dropout(p=0.2, inplace=False)
+  )
+  (pre_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+  (conformer): Conformer(
+    (conformer_layers): ModuleList(
+      (0-3): 4 x ConformerLayer(
+        (ffn1): _FeedForwardModule(
+          (sequential): Sequential(
+            (0): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+            (1): Linear(in_features=256, out_features=512, bias=True)
+            (2): SiLU()
+            (3): Dropout(p=0.2, inplace=False)
+            (4): Linear(in_features=512, out_features=256, bias=True)
+            (5): Dropout(p=0.2, inplace=False)
+          )
+        )
+        (self_attn_layer_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+        (self_attn): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=256, out_features=256, bias=True)
+        )
+        (self_attn_dropout): Dropout(p=0.2, inplace=False)
+        (conv_module): _ConvolutionModule(
+          (layer_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+          (sequential): Sequential(
+            (0): Conv1d(256, 512, kernel_size=(1,), stride=(1,))
+            (1): GLU(dim=1)
+            (2): Conv1d(256, 256, kernel_size=(15,), stride=(1,), padding=(7,), groups=256)
+            (3): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (4): SiLU()
+            (5): Conv1d(256, 256, kernel_size=(1,), stride=(1,))
+            (6): Dropout(p=0.2, inplace=False)
+          )
+        )
+        (ffn2): _FeedForwardModule(
+          (sequential): Sequential(
+            (0): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+            (1): Linear(in_features=256, out_features=512, bias=True)
+            (2): SiLU()
+            (3): Dropout(p=0.2, inplace=False)
+            (4): Linear(in_features=512, out_features=256, bias=True)
+            (5): Dropout(p=0.2, inplace=False)
+          )
+        )
+        (final_layer_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+  )
+  (output_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+  (output_dropout): Dropout(p=0.1, inplace=False)
+  (out): Linear(in_features=256, out_features=41, bias=True)
+)
+2025-12-16 17:50:21,676: Model has 17,641,001 parameters
+2025-12-16 17:50:21,676: Model has 11,819,520 day-specific parameters | 67.00% of total parameters
+2025-12-16 17:50:21,676: Loading preprocessed U-Net data from *_unet.hdf5

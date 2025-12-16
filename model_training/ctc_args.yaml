@@ -4,17 +4,17 @@ model:
   n_units: 256 # Conformer encoder dim (smaller for stability)
   rnn_dropout: 0.2 # unused for Conformer; kept for compatibility
   rnn_trainable: true # whether the layers are trainable
-  n_layers: 4 # Conformer 层数（更小更稳）
-  patch_size: 14 # size of the input patches (14 time steps)
+  n_layers: 6 # Conformer 更深以提升精度
+  patch_size: 8 # 更小 patch，温和下采样
   patch_stride: 4 # stride for the input patches (4 time steps)
   n_heads: 4 # number of attention heads for Conformer
-  unet_path: null # path to pretrained unet checkpoint
-  freeze_unet: false # whether to freeze unet weights
-  use_precomputed_unet: false # NEW: Use pre-processed features from _unet.hdf5 files
-  # setting to false is slow at first but actually faster afterwards
+  unet_path: null # 移除 UNet 前端
+  freeze_unet: true # whether to freeze unet weights
+  use_precomputed_unet: false # 不使用预计算 UNet 特征
+  # setting to false computes U-Net features on the fly (slower initially)
 
   conv_kernel_size: 15 # smaller conv kernel for stability
-  ffn_mult: 2 # FFN multiplier (n_units * ffn_mult)
+  ffn_mult: 3 # 提升 FFN 容量
   add_day_layers: true # keep day-specific blocks but constrained
   day_layer_mode: rnn # options: mlp | rnn | none
 
@@ -45,11 +45,11 @@ early_stopping_val_steps: 20 # number of validation steps to wait before stoppin
 
 num_training_batches: 120000 # number of training batches to run
 lr_scheduler_type: cosine # type of learning rate scheduler to use
-lr_max: 0.0003 # smaller LR for Conformer stability
+lr_max: 0.00015 # further reduced LR to stabilize late-stage training
 lr_min: 0.00003 # minimum learning rate for the main model
 lr_decay_steps: 120000 # number of steps for the learning rate decay
 lr_warmup_steps: 8000 # longer warmup for Conformer
-lr_max_day: 0.001 # day-specific LR (reduced)
+lr_max_day: 0.0005 # day-specific LR (further reduced)
 lr_min_day: 0.0001 # minimum learning rate for the day specific input layers
 lr_decay_steps_day: 120000 # number of steps for the learning rate decay for the day specific input layers
 lr_warmup_steps_day: 4000 # number of warmup steps for the learning rate scheduler for the day specific input layers
@@ -60,10 +60,10 @@ epsilon: 1e-9 # epsilon parameter for the Adam optimizer
 weight_decay: 0.001 # weight decay for the main model
 weight_decay_day: 0.0005 # weight decay for the day specific input layers
 seed: 42 # random seed for reproducibility
-grad_norm_clip_value: 5 # tighter gradient clipping
+grad_norm_clip_value: 2 # more aggressive clipping to limit spikes
 
 # CTC regularization
-ctc_label_smoothing: 0.1
+ctc_label_smoothing: 0.08
 
 batches_per_train_log: 200 # number of batches per training log
 batches_per_val_step: 2000 # number of batches per validation step

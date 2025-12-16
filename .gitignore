@@ -16,7 +16,8 @@ data/t15_pretrained_rnn_baseline/
 *.h5
 
 # ignore trained models
-model_training/trained_models/
+model_training/trained_models/*/checkpoint/
+
 *.pt
 *.pth
 *.ckpt

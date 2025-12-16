@@ -10,6 +10,8 @@ import editdistance
 import argparse
 
 from rnn_model import GRUDecoder
+from conformer_model import ConformerDecoder
+from combined_models import build_unet_conformer
 from evaluate_model_helpers import *
 
 # argument parser for command line arguments
@@ -55,35 +57,62 @@ else:
     print('Using CPU for model inference.')
     device = torch.device('cpu')
 
-# define model
-model = GRUDecoder(
-    neural_dim = model_args['model']['n_input_features'],
-    n_units = model_args['model']['n_units'], 
-    n_days = len(model_args['dataset']['sessions']),
-    n_classes = model_args['dataset']['n_classes'],
-    rnn_dropout = model_args['model']['rnn_dropout'],
-    input_dropout = model_args['model']['input_network']['input_layer_dropout'],
-    n_layers = model_args['model']['n_layers'],
-    patch_size = model_args['model']['patch_size'],
-    patch_stride = model_args['model']['patch_stride'],
-)
+# define model (support GRU or Conformer, with optional UNet frontend)
+model_type = model_args['model'].get('type', 'rnn')
+
+if model_type == 'conformer':
+    conformer_args = dict(
+        neural_dim = model_args['model']['n_input_features'],
+        n_units = model_args['model']['n_units'],
+        n_days = len(model_args['dataset']['sessions']),
+        n_classes = model_args['dataset']['n_classes'],
+        n_heads = model_args['model'].get('n_heads', 4),
+        n_layers = model_args['model']['n_layers'],
+        input_dropout = model_args['model']['input_network']['input_layer_dropout'],
+        patch_size = model_args['model']['patch_size'],
+        patch_stride = model_args['model']['patch_stride'],
+        conv_kernel_size = model_args['model'].get('conv_kernel_size', 15),
+        ffn_mult = model_args['model'].get('ffn_mult', 2),
+        add_day_layers = model_args['model'].get('add_day_layers', True),
+        day_layer_mode = model_args['model'].get('day_layer_mode', 'mlp'),
+    )
+    unet_path = model_args['model'].get('unet_path', None)
+    freeze_unet = model_args['model'].get('freeze_unet', False)
+    use_precomputed_unet = model_args['model'].get('use_precomputed_unet', False)
+    if unet_path and not use_precomputed_unet:
+        model = build_unet_conformer(conformer_args, unet_path, freeze_unet)
+    else:
+        model = ConformerDecoder(**conformer_args)
+else:
+    model = GRUDecoder(
+        neural_dim = model_args['model']['n_input_features'],
+        n_units = model_args['model']['n_units'], 
+        n_days = len(model_args['dataset']['sessions']),
+        n_classes = model_args['dataset']['n_classes'],
+        rnn_dropout = model_args['model']['rnn_dropout'],
+        input_dropout = model_args['model']['input_network']['input_layer_dropout'],
+        n_layers = model_args['model']['n_layers'],
+        patch_size = model_args['model']['patch_size'],
+        patch_stride = model_args['model']['patch_stride'],
+    )
 
 # load model weights
-if os.path.isdir(args.model_path):
-    checkpoint_path = os.path.join(args.model_path, 'checkpoint/best_checkpoint')
-else:
-    checkpoint_path = args.model_path
-
+checkpoint_path = os.path.join(model_path, 'checkpoint/best_checkpoint')
 checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
 
+# rebuild clean state dict without mutating during iteration
+clean_state_dict = {}
+for k, v in checkpoint['model_state_dict'].items():
+    new_key = k.replace('module.', '').replace('_orig_mod.', '')
 
-# Fix for torch.compile adding "_orig_mod." prefix
-# Create a new state dict to avoid RuntimeError/KeyError during iteration
-new_state_dict = {}
-for key, value in checkpoint['model_state_dict'].items():
-    new_key = key.replace("_orig_mod.", "")
-    new_state_dict[new_key] = value
-checkpoint['model_state_dict'] = new_state_dict
+    # Handle torchaudio Conformer conv block rename (conv_layer_norm/conv_sequential -> conv_module.layer_norm/sequential)
+    if 'conformer_layers' in new_key:
+        new_key = new_key.replace('conv_layer_norm', 'conv_module.layer_norm')
+        new_key = new_key.replace('conv_sequential', 'conv_module.sequential')
+
+    clean_state_dict[new_key] = v
+
+model.load_state_dict(clean_state_dict, strict=True)
 
 # add model to device
 model.to(device) 
