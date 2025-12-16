@@ -24,4 +24,4 @@ model_training/trained_models/*/checkpoint/
 
 cuda-repo-wsl-ubuntu-12-8-local_12.8.0-1_amd64.deb
 
-language_model
+language_model/runtime
