@@ -188,9 +188,9 @@ The GRU's gating equations:\\
 GRUs offer efficient temporal modeling with fewer parameters than LSTMs (no separate cell state $\mathbf{c}_t$), while transformers lack RNNs' inherent temporal inductive bias despite superior long-range dependency modeling.\\
 
 The 5-layer GRU architecture mirrors the hierarchical speech motor system:\\
-\textbf{1.Layer1–2}: Encode low-level articulatory features (primary motor cortex)\\
-\textbf{2.Layer3}: Integrates features into phoneme patterns (ventral premotor cortex)\\
-\textbf{3.Layer4–5}: Coordinate phoneme sequences (supplementary motor area)\\
+\textbf{Layer1–2}: Encode low-level articulatory features (primary motor cortex)\\
+\textbf{Layer3}: Integrates features into phoneme patterns (ventral premotor cortex)\\
+\textbf{Layer4–5}: Coordinate phoneme sequences (supplementary motor area)\\
 
 
 Initialization for Stable Optimization:\\
@@ -294,6 +294,7 @@ where $\text{ConvBlock}^{(l)}$ consists of two 3×3 convolutions with batch norm
 \]
 
 Theoretically, U-Net should learn hierarchical neural patterns, because of its better feature representations, utilization of unlabeled neural data through self-supervised pre-training, etc,.The experimental evaluation of this U-Net enhancement is presented in Section 3.3, which analyzes its performance compared to the baseline Conformer model.
+
 
 \subsection{Training Objective and Optimization}
 Speech production involves variable-rate articulation, leading to: 1) input-output length mismatch - neural sequences (100-300 time steps) vs. phoneme sequences (10-50 phonemes), 2) temporal alignment uncertainty - exact phoneme boundaries are unknown, and 3) phoneme co-articulation - Neural patterns blend across phoneme transitions.\\
@@ -610,9 +611,9 @@ With greater computational resources, we could explore more advanced neural sing
 1. Dongyang Li, Liujia Ma, Mingyue Qin, Peilin Liu, and Fei Wen. 2025. Self-ensemble for test time adaptation. Neurocomputing, 653:131038.\\
 2. Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. 2017. Attention is allyou need. Advances in neural information processing systems, 30.\\
 3. WeiBang Jiang, LiMing Zhao and BaoLiang Lu. 2024. The Twelfth International Conference on Learning Representations (ICLR 2024).Large Brain Model for Learning Generic Representations with Tremendous EEG Data in BCI.\\
+4. Alex Graves, Santiago Fernández, Faustino Gomez, and Jürgen Schmidhuber. "Connectionist Temporal Classification: Labelling Unsegmented Sequence Data with Recurrent Neural Networks." Proceedings of the 23rd International Conference on Machine Learning (ICML 2006), pp. 369–376.\\
+5. Anmol Gulati, James Qin, Chung-Cheng Chiu, Niki Parmar, Yu Zhang, Jiahui Yu, Wei Han, Shibo Wang, Zhengdong Zhang, Yonghui Wu, and Ruoming Pang. “Conformer: Convolution-augmented Transformer for Speech Recognition.” Proceedings of Interspeech 2020, pp. 5036–5040, 2020.
 
-
-% \section{Appendix 1}
 
 \appendix
 
@@ -643,11 +644,5 @@ With greater computational resources, we could explore more advanced neural sing
   \label{fig:arch_comparison}
 \end{figure}
 
-
-
-\clearpage
-\thispagestyle{empty}
-\null
-\clearpage
 
 \end{document}
