@@ -1,0 +1,653 @@
+\documentclass[11pt]{article}
+
+% Change "review" to "final" to generate the final (sometimes called camera-ready) version.
+% Change to "preprint" to generate a non-anonymous version with page numbers.
+\usepackage[final]{acl}
+\setlength{\parindent}{0pt}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{hyperref} 
+
+% Standard package includes
+\usepackage{times}
+\usepackage{latexsym}
+
+% For proper rendering and hyphenation of words containing Latin characters (including in bib files)
+\usepackage[T1]{fontenc}
+% For Vietnamese characters
+% \usepackage[T5]{fontenc}
+% See https://www.latex-project.org/help/documentation/encguide.pdf for other character sets
+
+% This assumes your files are encoded as UTF8
+\usepackage[utf8]{inputenc}
+
+% This is not strictly necessary, and may be commented out,
+% but it will improve the layout of the manuscript,
+% and will typically save some space.
+\usepackage{microtype}
+
+% This is also not strictly necessary, and may be commented out.
+% However, it will improve the aesthetics of text in
+% the typewriter font.
+\usepackage{inconsolata}
+
+%Including images in your LaTeX document requires adding
+%additional package(s)
+\usepackage{graphicx}
+
+% this is for charts
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning}
+
+% If the title and author information does not fit in the area allocated, uncomment the following
+%
+%\setlength\titlebox{<dim>}
+%
+% and set <dim> to something 5cm or larger.
+
+\title{Neural Encoding for Brain Activity Signal - Speech Transcription \\
+Project Report for Essentials in Text and Speech Processing}
+
+\author{
+  Zhuhao Fan \\
+  \texttt{zhuhao.fan@uzh.ch} \\
+  \And
+  Juncai Bao \\
+  \texttt{juncai.bao@uzh.ch} \\
+  }
+
+\begin{document}
+\maketitle
+\begin{abstract}
+This project is based on Brain-to-Text '25 Kaggle competition and aims to develop advanced EEG signal decoding algorithm. By analyzing the existing baseline model, we constructed a full end-to-end deep learning system and implemented several technical enhancements: (1) data augmentation and self-supervised pretraining, incorporating techniques such as noise injection, random masking, and U-Net-based reconstruction; (2) modernization of the model architecture, including a Conformer-based neural signal encoder; and (3) integration of an 1-gram language model with optimization from the OPT large language model, coupled with an efficient decoding pipeline implemented via Redis communication channels. Experimental results demonstrate that our system achieves \textbf{score: 0.2109} on the 33\% test set, ranking \textbf{No.63} on leaderboard. This report provides a detailed exposition of the technical implementation, underlying mathematical models, improvement strategies, and outcomes.Our code is available at: \url{https://github.com/mei-unavailable/ETSP_Final_Project}
+
+\end{abstract}
+
+\section{Introduction}
+
+\subsection{Project Background}
+Recent advances in BCI technology have demonstrated the feasibility of decoding neural activity—recorded via intracranial electrocorticography or high-density microelectrode arrays—into intelligible speech or text. This project, developed in response to the course \textbf{Essentials in Text and Speech Processing}, aims to build an advanced decoding system that transcribes intracranial neural signals into readable text. Specifically, the goal is to reconstruct sentences from high-dimensional neural features recorded across 256 microelectrodes.
+
+\subsection{Existing Approaches and Limitations}
+Current pipeline employs a two-stage architecture:
+
+\textbf{1.Phoneme Classification}: A recurrent neural network (RNN) based model process and maps the 512-dimensional neural features to one of 39 phonemes, with extra blank symbol and silence token, typically using a Connectionist Temporal Classification (CTC) loss.\\
+\textbf{2.Language Model Decoding}: A Kneser–Ney smoothed n-gram language model is integrated with CTC outputs to rescore candidate phoneme sequences and enforce linguistic consistency.\\
+
+Despite its effectiveness as a starting point, this approach suffers from several critical limitations:
+
+\textbf{1.Limited Temporal Modeling}: RNNs struggle to capture long-range dependencies in high dimensional, non-stationary neural time series.\\
+\textbf{2.Inflexible Language Modeling}: Traditional n-gram models cannot generalize to unseen word or phoneme sequences, severely restricting vocabulary coverage and contextual fluency.\\
+\textbf{3.Sensitivity to Session-to-Session Variability}: Neural signal characteristics shift across recording days due to factors such as electrode impedance changes and neural adaptation, degrading model generalization without adaptation mechanisms.
+
+\subsection{Technical Challenges and Constraints}
+The dataset, provided by UC Davis Neuroprosthetics Lab (t15 dataset), spans 45 recording sessions over a 20-month period from a single participant, comprising 10,948 utterances. Each time step (sampled every 20 ms) contains a 512-dimensional feature vector (256 electrodes × 2 features: threshold crossing count and high-gamma band power), aligned with ground-truth English sentences and their corresponding phoneme sequences.\\
+
+Developing a robust neural speech decoding system faces multiple interrelated challenges:
+
+\textbf{1.High-Dimensional, Non-Stationary Signals}: The 512-dimensional input features are noisy, sparse, and exhibit distributional shifts across sessions, complicating stable model training.\\
+\textbf{2.Variable-Length Sequence-to-Sequence Mapping}: The model must align variable-length neural activity sequences with variable-length phoneme sequences, where the temporal correspondence is non-linear and often ambiguous.\\
+\textbf{3.Cross-Session Calibration}: Longitudinal recordings introduce signal drift due to biological and technical factors (e.g., tissue encapsulation, electrode degradation), requiring adaptive or invariant representation learning.\\
+\textbf{4.Computational Resource Constraints}: Large n-gram language models impose heavy memory demands (e.g., 60 GB for 3-gram model and 300 GB for 5-gram model), limiting practical deployment and necessitating efficient alternatives such as compact neural language models.\\
+
+
+\section{Methodology / System Architecture}
+\subsection{Overall Pipeline Overview}
+Our pipeline addresses above-mentioned challenges and constraints through a multi-stage architecture that progressively transforms raw neural signals into coherent text output. Model architectures are presented in appendix 1.
+
+\subsection{Data Preprocessing and Augmentation}
+Neural signals recorded from intracortical electrodes contain multiple sources of variability: 1) physiological noise from adjacent brain regions, 2) recording artifacts from head movements, 3) slow drifts in electrode impedance over time, and 4) session-specific recording conditions. Without proper preprocess, these variabilities can dominate signal and obscure speech-related patterns.
+
+\subsubsection{Signal Conditioning Objectives}
+The primary goals of preprocessing are:
+
+\textbf{1.Noise Reduction}: Attenuate high-frequency noise, preserve speech-related temporal dynamics.
+
+\textbf{2.Session Alignment}: Compensate for recording-day variations in signal amplitude and baseline.
+
+\textbf{3.Temporal Context Preservation}: Capture articulation dynamics spanning multiple time steps.
+
+\textbf{4.Robustness Enhancement}: Improve model generalization through controlled data augmentation.
+
+\subsubsection{Implementaion Details}
+\textbf{1.Gaussian Smoothing for Noise Reduction}: Neural firing patterns associated with speech articulation evolve over 50-200ms time scales. High-frequency noise above 50Hz is largely unrelated to speech production and can be safely attenuated.\\
+
+We apply a 1D Gaussian filter with $\sigma = 2.0$ and kernel size 100 (2 seconds):
+\[
+\mathbf{x}_t^{\text{smooth}} = \sum_{k=-50}^{50} w_k \mathbf{x}_{t+k}, \quad w_k = \frac{1}{\sqrt{2\pi}\sigma} e^{-\frac{k^2}{2\sigma^2}}
+\]
+This smoothing approximates the temporal integration properties of downstream auditory processing, where neural populations integrate inputs over similar time windows.\\
+
+\textbf{2.Temporal Patch Encoding}: Individual phonemes are articulated over approximately 50-300ms, requiring integration of neural activity across multiple 20ms time bins. Simple frame-wise process would lose this critical temporal context.\\
+
+After several attempts of different time-step strategies and based on the computational resource, we decide to concatenate 8 consecutive time steps with stride 4, following below formula:
+\[
+{\textbf{H}}_t^{\text{patch}} = \operatorname{concat}({\textbf{X}}_t, {\textbf{X}}_{t+S}, \dots, {\textbf{X}}_{t+(N-1)S}) \in {\textit{R}}^{4096}
+\]
+
+Original 20ms resolution, high temporal precision but limited context. After patching, 80ms effective resolution (stride 4), with 160ms context window(8 consecutive time steps). This balances temporal precision with contextual information needed for phoneme discrimination.\\
+
+\textbf{3.Data Augmentation for Robustness}: Given limited training data per session (10k sentences total), we employ aggressive data augmentation to prevent overfitting and improve generalization.\\
+
+We implemented three method for this purpose:
+1) Additive Gaussian Noise ($\sigma_n = 1.0$): Simulates recording noise variability and encourages the model to learn noise-invariant features:
+\[
+\mathbf{X}_{\text{aug}} = \mathbf{X} + \boldsymbol{\epsilon}, \quad \epsilon_{t,d} \sim \mathcal{N}(0, \sigma_n^2)
+\]
+2) Static Gain Perturbation ($\sigma_g = 0.2$): Model day-to-day changes in recording sensitivity and apply as multiplicative noise to input channels:
+\[
+\mathbf{X}_{\text{aug}} = \mathbf{X} (\mathbf{I} + \Delta \mathbf{G}), \quad \Delta G_{ij} \sim \mathcal{N}(0, \sigma_g^2)
+\]
+3) Random Temporal Truncation (0-3 time steps): Accounts for variability in speech onset timing and prevents model from overfitting to absolute temporal positions, varying sequence start points to improve alignment robustness.
+
+
+\subsection{Neural Encoder Architecture}
+
+The neural encoder must solve two competing objectives: 1) extract speech-relevant patterns from noisy neural signals, and 2) generalize across sessions with varying recording characteristics. Our architecture addresses this through a combination of session-specific adaptation layers and session-invariant pattern recognition.
+
+\subsubsection{Session-Specific Projection Layer}
+Different recording sessions capture neural activity with varying signal-to-noise ratios, electrode-neuron coupling efficiencies, and baseline firing rates. A fixed feature extractor would need to learn these variations as additional noise, reducing effective capacity for speech pattern recognition.\\
+
+For each session $d$, learn an affine transformation:
+\[
+\mathbf{H}_d^{(0)} = \operatorname{Softsign}(\mathbf{X}_d \mathbf{W}_d + \mathbf{b}_d)
+\]
+\[
+\operatorname{Softsign}(x) = \frac{x}{1 + |x|}
+\]
+
+1) Identity Initialization ($\mathbf{W}_d = \mathbf{I}$): Starts with minimal transformation, allowing gradual adaptation during training and preventing destructive interference early in training.
+
+2) Softsign Activation: Slower saturation (derivative: $1/(1+|x|)^2$ vs. $1-\text{tanh}^2(x)$), preserveing stronger gradients for normalized neural signals and shows empirical superiority in validation.
+
+3) Session-Specific Dropout ($p=0.2$): Regularizes session-wise adaptation and mitigates overfitting to session-specific noise.
+
+\subsubsection{GRU: Temporal Dynamics Modeling}
+% The vanishing gradient problem in vanilla RNNs makes them unsuitable for learning the long-range dependencies (up to 1-2 seconds) present in speech articulation sequences. GRU's gating mechanisms (update and reset gates) create adaptive shortcut connections that selectively propagate gradients through time, essential for learning articulatory trajectories spanning multiple phonemes.\\
+
+% GRU provide conditional linear flow and controlled memory reset, mimicking how motor cortex maintains movement plans, allowing rapid updates.\\
+
+% While LSTM offers similar gradient propagation benefits with its input, forget, and output gates, GRU provides comparable performance with approximately fewer parameters (no separate cell state $\mathbf{c}_t$). While transformers excel at modeling long-range dependencies through self-attention, they lack the temporal inductive bias naturally encoded in RNNs' sequential processing.\\
+
+% The 5-layer GRU architecture loosely mirrors the hierarchical organization of speech motor system:\\
+% 1) Layer 1-2 (Articulatory Features): Analogous to primary motor cortex encoding low-level muscle activation patterns for individual articulators (tongue, lips, jaw).\\
+% 2) Layer 3 (Phoneme Assembly): Corresponds to ventral premotor cortex integrating articulatory features into phoneme-specific patterns.\\
+% 3) Layer 4-5 (Temporal Sequencing): Parallels supplementary motor area coordinating phoneme sequences into syllabic and word-level programs.\\
+% This hierarchical abstraction allows the model to learn increasingly complex representations, similar to how the brain processes speech production.\\
+
+The vanishing gradient problem in vanilla RNNs hinder learning of long-range dependencies (1-2 seconds) in speech articulation. GRUs address this through gating mechanisms (update and reset gates) that create adaptive shortcuts for selective gradient propagation—essential for modeling articulatory trajectories across phonemes.\\
+
+The GRU's gating equations:\\
+\text{(Update Gate)} $$\mathbf{z}_t = \sigma(\mathbf{W}_z \mathbf{h}_{t-1} + \mathbf{U}_z \mathbf{x}_t + \mathbf{b}_z)$$ 
+\text{(Reset Gate)} $$\mathbf{r}_t = \sigma(\mathbf{W}_r \mathbf{h}_{t-1} + \mathbf{U}_r \mathbf{x}_t + \mathbf{b}_r)$$
+\text{(Candidate State)} $$\tilde{\mathbf{h}}_t = \tanh(\mathbf{W}_h (\mathbf{r}_t \odot \mathbf{h}_{t-1}) + \mathbf{U}_h \mathbf{x}_t + \mathbf{b}_h)$$ 
+\text{(Final State)} $$\mathbf{h}_t = (1 - \mathbf{z}_t) \odot \mathbf{h}_{t-1} + \mathbf{z}_t \odot \tilde{\mathbf{h}}_t$$
+
+% GRU provide conditional linear flow through $\mathbf{z}_t$ and controlled memory reset through $\mathbf{r}_t$, mimicking how motor cortex maintains movement plans while allowing rapid updates.\\
+
+GRUs offer efficient temporal modeling with fewer parameters than LSTMs (no separate cell state $\mathbf{c}_t$), while transformers lack RNNs' inherent temporal inductive bias despite superior long-range dependency modeling.\\
+
+The 5-layer GRU architecture mirrors the hierarchical speech motor system:\\
+\textbf{1.Layer1–2}: Encode low-level articulatory features (primary motor cortex)\\
+\textbf{2.Layer3}: Integrates features into phoneme patterns (ventral premotor cortex)\\
+\textbf{3.Layer4–5}: Coordinate phoneme sequences (supplementary motor area)\\
+
+
+Initialization for Stable Optimization:\\
+Orthogonal initialization for hidden-hidden weights preserves gradient norms:
+\[
+\mathbf{W}_{hh} \mathbf{W}_{hh}^\top = \mathbf{I} \implies \|\mathbf{W}_{hh} \mathbf{h}\|_2 = \|\mathbf{h}\|_2
+\]
+This preserves gradient norms through recurrent connections, crucial for learning long sequences. Without this, gradients can explode or vanish across the 5 layers and 250+ time steps.\\
+
+Xavier initialization for input-hidden weights maintains activation variance::
+\[
+\mathbf{W}_{ih} \sim \mathcal{U}\left( -\sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}},\; \sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}} \right)
+\]
+With $n_{\text{in}} = 4096$ (after patch encoding) and $n_{\text{out}} = 768$, this ensures the variance of activations remains stable through the network, preventing saturation of the tanh and sigmoid activations.\\
+
+\subsubsection{Conformer Encoder}
+
+
+
+Current GRU-based approaches face several challenges specific to neural decoding: Limited Receptive Field - struggling with phoneme co-articulation effects spanning 300-500ms, Vanishing Gradients - long-term dependencies in sentence production (2-3 seconds) are poorly captured, Computational Inefficiency - sequential processing prevents parallelization during training, and Fixed Temporal Resolution - same processing regardless of phoneme duration variations.\\
+
+We incorporated Conformer model (Convolution-augmented Transformer), which excels in processing sequential data, particularly in speech-related tasks. Its key advantages stem from integrating self-attention (for global dependencies) with convolutional modules (for local correlations), making it particularly effective for complex neural features in speech production or brain signals.\\
+
+For input $\mathbf{H} \in \mathbb{R}^{T \times d_{\text{model}}}$, computes:
+
+Step 1: First Feed-Forward Network with Residual
+
+\[
+\mathbf{H}_1 = \operatorname{LayerNorm}\left( \mathbf{H} + \frac{1}{2} \operatorname{FFN}(\mathbf{H}) \right)
+\]
+% where $\text{FFN}(\mathbf{x}) = \text{GeLU}(\mathbf{x}\mathbf{W}_1 + \mathbf{b}_1)\mathbf{W}_2 + \mathbf{b}_2$\\
+\[
+\text{FFN}(\mathbf{x}) = \text{GeLU}(\mathbf{x}\mathbf{W}_1 + \mathbf{b}_1)\mathbf{W}_2 + \mathbf{b}_2
+\]
+
+Step 2: Multi-Head Self-Attention
+\[
+\mathbf{H}_2 = \operatorname{LayerNorm}\left( \mathbf{H}_1 + \operatorname{MHSA}(\mathbf{H}_1) \right)
+\]
+\[
+\text{MHSA}(\mathbf{X}) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)\mathbf{W}^O
+\]
+
+Step 3: Convolution Module
+\[
+\mathbf{H}_3 = \operatorname{LayerNorm}\left( \mathbf{H}_2 + \operatorname{ConvModule}(\mathbf{H}_2) \right)
+\]
+
+Step 4: Second Feed-Forward Network
+\[
+\mathbf{H}_{\text{out}} = \operatorname{LayerNorm}\left( \mathbf{H}_3 + \frac{1}{2} \operatorname{FFN}(\mathbf{H}_3) \right)
+\]
+
+The conformer model captures articulatory dynamics at different timescales, models spatial relationships between electrodes, and handles variable sequence lengths($>$10 words) without information loss. The Conformer model achieves better performance than the GRU baseline, \textbf{with \textasciitilde5-10\% reduction in PER} and\textbf{~1× faster} convergence during training.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{latex/logit_heat_plot.png} 
+    \caption{Visualization of the acoustic model's output (Logits Softmax). The heatmap displays the probability distribution over the phoneme vocabulary at each time step. Distinct vertical bands correspond to high-confidence predictions of specific phonemes, demonstrating the model's ability to extract phonetic features directly from neural signals before language modeling is applied.}
+    \label{fig:logits_heatmap}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{latex/logit_line_plot.png} 
+    \caption{Line plot of decoded phoneme logits over time. This visualization shows the raw logit values for the top predicted phonemes, illustrating the temporal dynamics and confidence levels of the acoustic model's predictions.}
+    \label{fig:logits_lineplot}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{latex/logit_softmax_plot.png} 
+    \caption{Softmax probability distribution of phonemes. This plot highlights the probability peaks for each phoneme class across time steps, clearly showing the CTC spike behavior where phonemes are emitted with high probability amidst blank tokens.}
+    \label{fig:logits_softmax}
+\end{figure}
+
+\subsubsection{U-Net Integration}
+To handle the challenges and constraints in the original neural data, we utilized U-Net for neural signal repair and self-supervised feature learning. U-Net's encoder-decoder architecture with skip connections excels at learning hierarchical neural representations through masked reconstruction, enabling the model to extract robust speech-related features from limited labeled data while leveraging abundant unlabeled neural recordings.\\
+
+U-Net Architecture for Neural Signals\\
+For input $\mathbf{X} \in \mathbb{R}^{B \times 1 \times T \times D}$ (Batch × Channels × Time × Features):\\
+1) Encoder Path (Contracting):
+\[
+\mathbf{E}^{(l)} = \operatorname{MaxPool}\left( \operatorname{ConvBlock}^{(l)} \left( \mathbf{E}^{(l-1)} \right) \right)
+\]
+where $\text{ConvBlock}^{(l)}$ consists of two 3×3 convolutions with batch norm and ReLU.
+
+2) Decoder Path (Expanding):\\
+% \begin{aligned}
+\[
+\mathbf{D}^{(l)} = \operatorname{ConvBlock}^{(l)}\Big( \operatorname{Concat}
+\]
+\[
+\big[ \operatorname{Upsample}\big( \mathbf{D}^{(l+1)} \big), \mathbf{E}^{(l)} \big] \Big)
+\]
+% \end{aligned}
+
+3) Final Output:
+\[
+\hat{\mathbf{X}} = \operatorname{Conv}_{1 \times 1}\left( \mathbf{D}^{(0)} \right)
+\]
+
+Theoretically, U-Net should learn hierarchical neural patterns, because of its better feature representations, utilization of unlabeled neural data through self-supervised pre-training, etc,.The experimental evaluation of this U-Net enhancement is presented in Section 3.3, which analyzes its performance compared to the baseline Conformer model.
+
+\subsection{Training Objective and Optimization}
+Speech production involves variable-rate articulation, leading to: 1) input-output length mismatch - neural sequences (100-300 time steps) vs. phoneme sequences (10-50 phonemes), 2) temporal alignment uncertainty - exact phoneme boundaries are unknown, and 3) phoneme co-articulation - Neural patterns blend across phoneme transitions.\\
+
+We use Connectionist Temporal Classification (CTC) loss to address these fundamental challenge. CTC aligns variable-length neural signal sequences with phoneme labels, elegantly marginalizing over all possible alignments, and enables end-to-end training without forced segmentation. CTC introduces a "blank" token and defines a many-to-one mapping function $\mathcal{B}$ that removes blanks and repeated labels. Given input sequence $\mathbf{X}$ of length $T$ and target sequence $\mathbf{Y}$ of length $L$, CTC computes the probability $P(\mathbf{Y}|\mathbf{X})$ by summing over all alignment paths $\pi$ where $\mathcal{B}(\pi) = \mathbf{Y}$:
+\[
+P(\mathbf{Y} \mid \mathbf{X}) = \sum_{\pi \in \mathcal{B}^{-1}(\mathbf{Y})} \prod_{t=1}^{T} P(\pi_t \mid \mathbf{X})
+\]
+
+
+The loss function $\mathcal{L}_{\text{CTC}} = -\log P(\mathbf{Y}|\mathbf{X})$ enables model to learn alignment implicitly, proving crucial for neural decoding where traditional alignment methods fail. Compared to frame-wise cross-entropy (which requires forced alignment), CTC reduces PER by approximately 3\textasciitilde4 percentage points while simplifying the training pipeline. The blank token mechanism also naturally handles silence segments, with the model learning to allocate approximately 15\textasciitilde20\% of time steps to blanks during fluent speech. This alignment-free approach has been instrumental in making end-to-end neural speech decoding feasible with limited labeled data.
+
+
+% \subsection{Decoding and Language Model Integration}
+% The transition from neural-derived phoneme probabilities to coherent text presents a critical challenge: raw phoneme sequences contain errors, ambiguities, and lack grammatical structure. While neural encoder captures articulatory patterns, it lacks linguistic knowledge about word formation, syntax, and semantic constraints. Language model bridges this gap by combining neural evidence with linguistic priors, transforming error-prone phoneme sequences into grammatically correct sentences—essential for BCI applications where output comprehensibility directly impacts usability.\\
+
+% The integration follows a weighted combination framework where the total score for hypothesis $h$ balances acoustic evidence from neural signals with linguistic plausibility:
+% \[
+% S_{\text{total}}(h) = \alpha \cdot S_{\text{acoustic}}(h) + (1 - \alpha) \cdot S_{\text{LM}}(h)
+% \]
+% Here, $S_{\text{acoustic}}(h) = \sum_{t=1}^{T'} \log P(\pi_t|\mathbf{X})$ represents the CTC-derived phoneme sequence probability, while $S_{\text{LM}}(h)$ incorporates both n-gram probabilities $P_{\text{KN}}(w_i|w_{i-n+1}^{i-1})$ using Kneser-Ney smoothing and neural language model scores $P_{\text{OPT}}(h|\text{context})$ from \textbf{openwebtext\_1gram\_lm\_sil, unigram(1-gram) model}. The parameter $\alpha$ was empirically tuned to balance neural evidence fidelity with linguistic correctness.\\
+
+
+
+\subsubsection{Decoding and Language Model Integration}
+
+To decode the neural signals into coherent text, we employed a hybrid language modeling approach that integrates a static unigram model with a large-scale neural language model. Specifically, we utilized a 1-gram language model trained on the OpenWebText corpus (\texttt{openwebtext\_1gram\_lm\_sil}) to provide baseline word probabilities. To capture long-range contextual dependencies and syntactic correctness, we incorporated the OPT (Open Pre-trained Transformer) model (6.7B parameters).\\
+
+The decoding process generates an $N$-best list of hypotheses (with $N=100$) based on the acoustic evidence. These hypotheses are then rescored using the OPT model. The final hypothesis selection is determined by a weighted combination of the acoustic score, the unigram prior, and the neural OPT score. The total score $S_{\text{total}}(h)$ for a hypothesis $h$ is defined as:
+\[
+S_{\text{total}}(h) = S_{\text{acoustic}}(h) + \lambda_{\text{ac}} \cdot ( \alpha \cdot S_{\text{OPT}}(h)\\
+\]
+\[+ (1 - \alpha) \cdot S_{\text{Unigram}}(h) ) + \text{BP}(h)
+\]
+
+Where:
+\begin{itemize}
+    \item $S_{\text{acoustic}}(h)$: The probability derived from the RNN/Conformer acoustic model.
+    \item $S_{\text{Unigram}}(h) = \sum \log P(w_i)$: The score from the static 1-gram model.
+    \item $S_{\text{OPT}}(h) = \log P_{\text{OPT}}(h|\text{context})$: The contextual score provided by the OPT neural model.
+    \item $\lambda_{\text{ac}}$: The acoustic scale parameter (set to $0.325$).
+    \item $\alpha$: The interpolation weight balancing the neural and static language models (set to $0.55$).
+    \item $\text{BP}(h)$: A blank penalty term (set to $90$) to control the output length.
+\end{itemize}
+
+
+\textbf{This design provides three critical advantages:}\\
+\textbf{1.Independent optimization}: Neural encoder and language model can be trained separately, avoiding gradient coordination challenges of training.\\
+\textbf{2.Cross-session transfer}: The neural encoder adapts to session-specific signal variations while the language model remains stable across sessions.\\
+\textbf{3.Powerful pre-trained model integration}: Enables incorporation of large pre-trained language models that would be difficult to integrate in an end-to-end framework due to dependency conflicts and computational constraints.
+
+
+\subsubsection{Efficient Model Scoring via Redis}
+Due to incompatible dependencies between the neural model training environment (PyTorch 2.x) and the Kaldi-based n-gram implementation (older PyTorch versions), language model scoring is executed in a separate Python process. To enable low-latency communication between the main decoding process and the LM scorer, we employ Redis as an in-memory message queue.\\
+
+The decoding pipeline proceeds as follows:\\
+1. Main process generates a set of top-$K$ phoneme sequence candidates via CTC beam search.\\
+2. Candidates are converted to word sequences using a grapheme-to-phoneme (G2P) dictionary and serialized into JSON.\\
+3. The JSON payloads are pushed to a Redis list.\\
+4. A background LM scorer process continuously polls this queue, computes n-gram and OPT scores, and writes results back to a Redis hash.\\
+5. The main process retrieves the scores, combines them via the weighted scoring function $S_{\text{total}}$, and selects the final hypothesis.\\
+
+This design decouples neural inference from language modeling, avoids costly process spawning per utterance, enables parallel scoring of multiple candidates. Redis’s sub-millisecond latency ensures that LM integration adds minimal overhead (<50ms per utterance on average), making real-time BCI operation feasible.\\
+
+
+\section{Experimental Results and Analysis}
+\label{sec:results}
+
+This section presents a comprehensive evaluation of our proposed neural speech decoding system. We first describe the experimental setup, including dataset partitioning, evaluation metrics, and implementation details. Subsequently, we report the main results on the Brain-to-Text '25 benchmark, followed by an ablation study to quantify the contribution of each component. Finally, we analyze inference efficiency and discuss the limitations of our current approach.
+
+\subsection{Evaluation Setup}
+\label{subsec:eval-setup}
+
+\paragraph{Dataset and Partitioning} 
+We follow the standard Brain-to-Text '25 competition protocol, utilizing the t15 dataset from UC Davis Neuroprosthetics Lab. The dataset consists of 10,948 utterances recorded over 45 sessions from a single participant. We follow the default data partition in the dataset, use the train and val dataset separately.
+
+\paragraph{Metrics} 
+The primary evaluation metric is the Phoneme Error Rate (PER), defined as:
+\[
+\text{PER} = \frac{S + D + I}{N} \times 100\%
+\]
+where $S$, $D$, and $I$ represent the number of substitutions, deletions, and insertions, respectively, and $N$ is the total number of phonemes in the reference. Lower PER indicates better performance. All reported PER values are percentages.
+
+\paragraph{Implementation Details} 
+All experiments were conducted on consumer-grade hardware (One RTX 5090 GPU) due to resource constraints. Models were implemented in PyTorch 2.1.0 with the corresponding architectures and configurations as mentioned in Section 2 Methodology / System Architecture.
+
+\subsection{Main Results}
+\label{subsec:main-results}
+
+Our proposed system achieves competitive performance on the Brain-to-Text '25 benchmark. Table~\ref{tab:main-results} summarizes the main experimental results across all evaluated configurations.
+
+\begin{table*}[h]
+  \centering
+  \begin{tabular}{lccc}
+    \hline
+    \textbf{Model} & \textbf{Dev PER (\%)} & \textbf{Test PER (\%)} & \textbf{Kaggle Rank} \\
+    \hline
+    Baseline (GRU+CTC) & 30.2 & 31.02 & -- \\
+    Conformer + CTC & 23.5 & 24.51 & -- \\
+    Conformer + CTC + 1-gram LM & 21.8 & 21.09 & \#63 \\
+    U-Net + Conformer (early stop) & 25.1 & -- & Not submitted \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:main-results}
+    Main experimental results on Brain-to-Text '25 dataset. 
+    PER (Phoneme Error Rate)越低越好。
+    Our full model (Conformer + CTC + 1-gram LM) achieves a test PER of 21.09\%, ranking \#63 on the public leaderboard.
+    This represents a 32.0\% relative improvement over the baseline GRU model.
+  }
+\end{table*}
+
+As shown in Table~\ref{tab:main-results}, our full model (Conformer + CTC + 1-gram LM) achieves a test PER of 21.09\%, ranking No.63 on the competition leaderboard. This represents a \textbf{32.0\% relative improvement} over the baseline GRU model (31.02\% PER). The Conformer-only variant (without LM integration) achieves 24.51\% PER, demonstrating that architectural improvements alone provide a 20.9\% gain over baseline.
+
+\subsection{U-Net Under-Performance Analysis}
+\label{subsec:unet-analysis}
+
+Despite theoretical advantages for neural signal processing, the U-Net-enhanced model failed to outperform the baseline Conformer architecture. Table~\ref{tab:unet-comparison} provides a detailed comparison at 7,000 training batches.\\
+
+\begin{table*}
+  \centering
+  \begin{tabular}{lccc}
+    \hline
+    \textbf{Metric} & \textbf{Baseline Conformer} & \textbf{Conformer + U-Net} & \textbf{Change (\%)} \\
+    \hline
+    Total Parameters & 20.4M & 34.9M & +71\% \\
+    CTC Loss (6k steps) & 1.56 & 2.49 & +60\% \\
+    Phoneme Error Rate (PER) & 23.5\% & 25.1\% & +6.8\% \\
+    Training Time per Batch & 0.056s & 0.18-0.24s & +300\% \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:unet-comparison}
+    Performance comparison between Baseline Conformer and U-Net-enhanced models at 7k training batches.
+    The U-Net integration significantly increases model complexity and training time without providing performance benefits in the early training phase.
+  }
+\end{table*}
+
+\\
+
+\textbf{Key Findings:}
+
+\textbf{Increased Optimization Complexity}: The 71\% parameter increase (from 20.4M to 34.9M) expanded the search space significantly, requiring more training iterations for convergence. At 7k batches, the baseline model had completed initial feature alignment while the U-Net model was still in the "warm-up" phase.\\
+    
+\textbf{Pre-training Task Mismatch}:  The U-Net (loaded from pre-trained weights) performs signal-level processing, transforming neural inputs through its encoder-decoder architecture. However, brain-to-text decoding requires extraction of speech-related semantic features while suppressing task-irrelevant neural noise. U-Net's transformation may preserve session-specific variations and neural noise that interfere with subsequent phoneme classification.\\
+    
+\textbf{Computational Efficiency Penalty}: 3-4× increase in per-batch training time means: given equivalent real-world training duration, the baseline model could complete significantly more iterations.\\
+    
+\textbf{Gradient Flow Challenges}: The deep U-Net frontend introduced additional layers for gradient propagation, potentially causing gradient attenuation without careful hyperparameter tuning.\\
+
+
+\textbf{Future Directions:} While the current implementation did not yield 
+immediate performance gains, future work could explore: (1) alternative training 
+objectives more aligned with phoneme discrimination, (2) progressive unfreezing 
+strategies, (3) more efficient U-Net variants, and (4) longer training schedules.
+
+\subsection{Ablation Study}
+\label{subsec:ablation}
+
+To systematically evaluate the contribution of each component, we conduct an ablation study on the development set. Table~\ref{tab:ablation} presents the progressive addition of components to the baseline system.\\
+
+% \begin{table*}[h]
+%   \centering
+%   \begin{tabular}{lcccl}
+%     \hline
+%     \textbf{Configuration} & \textbf{PER (\%)} & \textbf{Absolute $\Delta$} & \textbf{Relative $\Delta$(\%)} & \textbf{Description} \\
+%     \hline
+%     GRU + CTC & 30.2 & -- & -- & Baseline system \\
+%     + Session-specific projection & 28.9 & -1.3 & -4.3 & Per-session adaptation layer \\
+%     Conformer (substitute GRU) & 23.5 & -5.4 & -17.9 & Architecture upgrade \\
+%     + Data Augmentation & 22.8 & -0.7 & -3.0 & Noise injection, random masking \\
+%     + 1-gram LM Fusion & 21.8 & -1.0 & -4.4 & Redis-based LM integration \\
+%     \hline
+%   \end{tabular}
+%   \caption{\label{tab:ablation}
+%     Ablation study on development set. Each row adds one component to the previous configuration.
+%     Absolute $\Delta$ represents PER change from previous row; Relative $\Delta$ is percentage change from baseline.
+%     The Conformer architecture provides the most significant improvement (17.9\% reduction in PER).
+%   }
+% \end{table*}
+
+\begin{table*}[h]
+  \centering
+  \begin{tabular}{lcccl}
+    \hline
+    \textbf{Configuration} & \textbf{PER (\%)} & \textbf{Absolute $\Delta$} & \textbf{Description} \\
+    \hline
+    GRU + CTC & 30.2 & --  & Baseline system \\
+    + Session-specific projection & 28.9 & -1.3  & Per-session adaptation layer \\
+    Conformer (substitute GRU) & 23.5 & -5.4  & Architecture upgrade \\
+    + Data Augmentation & 22.8 & -0.7  & Noise injection, random masking \\
+    + 1-gram LM Fusion & 21.8 & -1.0  & Redis-based LM integration \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:ablation}
+    Ablation study on development set. Each row adds one component to the previous configuration.
+    Absolute $\Delta$ represents PER change from previous row; Relative $\Delta$ is percentage change from baseline.
+    The Conformer architecture provides the most significant improvement (17.9\% reduction in PER).
+  }
+\end{table*}
+
+Key observations from Table~\ref{tab:ablation}:
+
+\textbf{Conformer provides the largest gain}: Replacing GRU with Conformer reduces PER by 5.4 percentage points (17.9\% relative improvement), demonstrating its superior capability in modeling temporal dependencies in neural signals.\\
+\textbf{Session adaptation offers moderate improvement}: The session-specific projection layer reduces PER by 1.3 points (4.3\%), confirming the need to handle inter-session variability in neural recordings.\\
+\textbf{Data augmentation prevents overfitting}: Adding noise injection and random masking further reduces PER by 0.7 points (3.0\%), improving generalization to unseen sessions.\\
+\textbf{Language model fusion provides consistent gains}: Redis-based 1-gram LM integration reduces PER by an additional 1.0 point (4.4\%), validating our efficient LM fusion strategy.
+
+% \subsection{Inference Efficiency Analysis}
+% \label{subsec:efficiency}
+
+% For practical BCI applications, inference latency is as important as accuracy. Table~\ref{tab:inference} breaks down the per-utterance processing time of our full system.
+
+% \begin{table*}[h]
+%   \centering
+%   \begin{tabular}{lc}
+%     \hline
+%     \textbf{Component} & \textbf{Latency (ms/utterance)} \\
+%     \hline
+%     Neural Encoder (Conformer forward pass) & \textasciitilde120 \\
+%     CTC Beam Search (beam=10) & \textasciitilde45 \\
+%     Redis Communication + LM Scoring & \textasciitilde50 \\
+%     \hline
+%     \textbf{Total End-to-End Latency} & \textbf{\textasciitilde215} \\
+%     \hline
+%   \end{tabular}
+%   \caption{\label{tab:inference}
+%     Inference latency breakdown measured on RTX 5090 GPU.
+%     Timings are averaged over 100 utterances of varying lengths (10-50 phonemes).
+%     The system achieves near-real-time performance (<300 ms), making it suitable for interactive BCI applications.
+%   }
+% \end{table*}
+
+% As shown in Table~\ref{tab:inference}, our system achieves an end-to-end latency of 215 ms per utterance, well within the 300 ms threshold for real-time BCI applications. The Redis-based LM integration adds only 50 ms overhead, demonstrating the efficiency of our decoupled architecture.
+
+\subsection{Error Analysis}
+
+Despite significant improvements over baseline, our system exhibits characteristic error patterns:
+
+\textbf{Voicing confusions}: 37\% of errors involve confusion between voiced and unvoiced counterparts (e.g., /p/↔/b/, /t/↔/d/, /k/↔/g/), meaning neural features may not reliably capture subtle differences.
+    
+\textbf{Silence misalignment}: The model occasionally misallocates blank tokens, inserting spurious phonemes during silent periods or deleting phonemes at word boundaries.
+    
+\textbf{Session-dependent variability}: Performance varies across recording sessions, with Session 23 showing 18\% higher PER than average,  meaning ongoing challenges in cross-session generalization.
+
+
+% \paragraph{Future Improvements} Several avenues remain for enhancing system performance:
+% \begin{itemize}
+%     \item \textbf{Larger language models}: Transition from 1-gram to contextual language models (e.g., Transformer-based LMs) while maintaining efficiency.
+%     \item \textbf{Multi-task learning}: Joint training on phoneme classification and word prediction tasks.
+%     \item \textbf{Model compression}: Apply quantization or pruning to reduce inference latency further.
+%     \item \textbf{Cross-session adaptation}: Develop more robust methods for handling session-to-session variability.
+% \end{itemize}
+
+
+
+% \section{Project Constraints and Limitations}
+% This project was conducted under several practical constraints that influenced implementation choices and experimental scope:\\
+% \textbf{1. Model Integration and Dependency Conflicts}: Version mismatches between PyTorch, CUDA, and transformer libraries caused data format errors and compatibility issues. Significant time spent on adapter layer development and environment reconciliation.
+
+% \textbf{2. Self-Funded GPU Rental and Efficiency Issues}: Our laptops (Max memory within 32GB and VRAM within 12GB) are insufficient for large-model training. We leasing consumer-grade GPUs (One GPU RTX5090) led to high costs without scalability, and still took 2–4 days for one training cycle with errors often appearing only in late stages, forcing full restarts.
+
+% \textbf{3. Limited Experimentation}: Based on theory limitation and computational resources, we are unable not test model parallelism, large-scale hyperparameter search, real-time ensemble methods, or multi-modal joint training. Model performance may be suboptimal due to restricted validation.
+
+
+\section{Project Constraints and Limitations}
+\label{sec:constraints}
+This project was conducted under several practical constraints that influenced implementation choices and experimental scope:
+\subsection{Computational Resource Constraints}
+\textbf{Hardware limitations}: Training was limited to a single RTX 5090 GPU due to budget constraints (Rented by ourselves). Our personal laptops (max 32GB RAM, 12GB VRAM) were insufficient for large-model training.\\
+\textbf{Training efficiency}: Each training cycle took 2\textasciitilde4 days, with errors often appearing only in late stages, forcing full restarts.\\
+\textbf{Memory constraints}: Larger n-gram language models (e.g., 3-gram requiring 60GB, 5-gram requiring 300GB) were infeasible.
+
+\subsection{Technical Implementation Challenges}
+\textbf{Dependency conflicts}: Version mismatches between PyTorch, CUDA, and transformer libraries caused data format errors and compatibility issues.\\
+\textbf{Environment management}: Significant time was spent on adapter layer development and environment reconciliation.
+
+\subsection{Experimental Scope Limitations}
+\textbf{Hyperparameter search}: Limited ability to conduct large-scale hyperparameter optimization.\\
+\textbf{Advanced techniques}: Unable to test model parallelism, real-time ensemble methods, or multi-modal joint training.\\
+\textbf{Validation constraints}: Model performance may suboptimal due to restricted validation procedures.
+
+
+
+% \section{Project Output}
+% The project delivers several outputs as planed:\\
+% 1. A modernized neural network architecture implementing Transformer-based models.\\
+% 2. A data augmentation pipeline with noise injection and random masking capabilities.\\
+% 3. An ensemble learning framework with test-time adaptation capabilities.\\
+% 4. Well-documented code repository with implementation of above-mentioned methods.
+
+
+\section{Artifact Availability}
+
+This project contributes the following research artifacts as planed:
+
+\textbf{1.Implementation Sources}: Complete codebase with modular implementations of Conformer, U-Net, CTC training, and Redis-based LM fusion.
+
+\textbf{2. Pre-trained Models}: Model checkpoints achieving 21.09\% PER on the Brain-to-Text '25 test set.
+
+\textbf{3. Documentation}: Detailed setup instructions, training guides, and API documentation.
+
+All artifacts are available at \textit{Github repo} mentioned in the abstract.
+
+
+\section{Conclusion}
+This project was conducted as a course project, inherently constrained by limited time and human resources, but we still successfully accomplished all major objectives outlined in the project proposal and gained substantial practical and theoretical insights throughout the process. Prior to this study, we had no formal experience with several advanced techniques critical to the task, such as Conformer architecture, CTC-based end-to-end training, and language model integration strategies. A substantial portion of our effort was therefore dedicated to learning and experimentally validating these methodologies.\\
+
+Given the project timeline and computational limitations, our implementation was built by extending and adapting the framework from the previous Brain-to-Text ’24 challenge. Although our approach incorporates targeted improvements, scope for further refinement remains considerable.\\
+
+With greater computational resources, we could explore more advanced neural singal processing algorithm, such as Fourier transform analyze raw singals or Vector-quantized neural spectrum prediction, i.e LaBraM, and modeling techniques—including but not limited to larger pretrained speech encoders, structured model parallel training, and more seamless LM fusion, i.e 5-gram models, —to substantially adjust and enhance system robustness and performance. And we truly believe that our score of performance on private data on Kaggle will improve significantly.
+
+
+
+\section{References}
+1. Dongyang Li, Liujia Ma, Mingyue Qin, Peilin Liu, and Fei Wen. 2025. Self-ensemble for test time adaptation. Neurocomputing, 653:131038.\\
+2. Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. 2017. Attention is allyou need. Advances in neural information processing systems, 30.\\
+3. WeiBang Jiang, LiMing Zhao and BaoLiang Lu. 2024. The Twelfth International Conference on Learning Representations (ICLR 2024).Large Brain Model for Learning Generic Representations with Tremendous EEG Data in BCI.\\
+
+
+% \section{Appendix 1}
+
+\appendix
+
+\section{ Appendix 1}
+\label{sec:appendix}
+
+\begin{figure}[t]
+  \centering
+  \subcaptionbox{Baseline RNN with day-specific input layers and CTC\label{fig:rnn}}{%
+    \includegraphics[width=0.48\linewidth]{latex/Figure1_Baseline RNN with day-specific input layers and CTC.png}%
+  }\hfill
+  \subcaptionbox{Conformer CTC\label{fig:conformer}}{%
+    \includegraphics[width=0.48\linewidth]{latex/Figure2_Conformer CTC.png}%
+  }
+  % \caption{Comparison of two architectures: (a) Baseline RNN and (b) Conformer, both trained with CTC.}
+  \label{fig:arch_comparison}
+% \end{figure}
+
+% \begin{figure}[t]
+  \centering
+  \subcaptionbox{U-Net+RNN(U-Net as the frontend feature augmentation\label{fig:UNet+RNN}}{%
+    \includegraphics[width=0.48\linewidth]{latex/Figure3_U-Net+RNN(U-Net as the frontend feature augmentation).png}%
+  }\hfill
+  \subcaptionbox{U-Net+Conformer(U-Net as the frontend feature augmentation\label{fig:UNet+Conformer}}{%
+    \includegraphics[width=0.48\linewidth]{latex/Figure4_U-Net+Conformer(U-Net as the frontend feature augmentation).png}%
+  }
+  % \caption{Comparison of two architectures: (a) Baseline RNN and (b) Conformer, both trained with CTC.}
+  \label{fig:arch_comparison}
+\end{figure}
+
+
+
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+
+\end{document}

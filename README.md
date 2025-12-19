@@ -1,8 +1,9 @@
-# Brain-to-Text Speech Neuroprosthesis
+# ETSP Project - Brain-to-Text 25
 
-This repository contains the implementation for the "Brain-to-Text" project, based on the paper *"An Accurate and Rapidly Calibrating Speech Neuroprosthesis"* by Card et al. (2024). The goal of this project is to decode speech directly from neural activity using Recurrent Neural Networks (RNNs) and Conformer architectures.
+This repository contains the implementation for the "Brain-to-Text" project, also an opening contest held at Kaggle ([Kaggle Contest Link](https://www.kaggle.com/competitions/brain-to-text-25/))
+. The project focuses on decoding text from neural signals using advanced neural network architectures and language models.
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 .
@@ -115,3 +116,24 @@ python evaluate_model.py \
 *   Replace `--model_path` with trained model path
 *   Results are saved as a CSV file in the model directory.
 
+### 3. Shutdown redis
+When you're done, you can shutdown the redis server from any terminal using `redis-cli shutdown`.
+
+
+### 4. Larger Models
+
+After downloading the n-gram language models from Dryad ([Dryad LM Link](https://datadryad.org/dataset/doi:10.5061/dryad.x69p8czpq)), you can run the 3gram and 5gram models as follows:
+
+#### run a 3gram model
+To run the 3gram language model from the root directory of this repository (requires ~60GB RAM):
+```bash
+conda activate b2txt25_lm
+python language_model/language-model-standalone.py --lm_path language_model/pretrained_language_models/openwebtext_3gram_lm_sil --do_opt --nbest 100 --acoustic_scale 0.325 --blank_penalty 90 --alpha 0.55 --redis_ip localhost --gpu_number 0
+```
+
+#### run a 5gram model
+To run the 5gram language model from the root directory of this repository (requires ~300GB of RAM):
+```bash
+conda activate b2txt25_lm
+python language_model/language-model-standalone.py --lm_path language_model/pretrained_language_models/openwebtext_5gram_lm_sil --rescore --do_opt --nbest 100 --acoustic_scale 0.325 --blank_penalty 90 --alpha 0.55 --redis_ip localhost --gpu_number 0
+```
